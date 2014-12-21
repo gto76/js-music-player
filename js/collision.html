@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script src="d3.v3.min.js"></script>
+<style>
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+</style>
+</head>
+
+<body>
+<div id="body">
+<script type="text/javascript">
+
+
+var RADIUS = 20
+
+var foci = [{x: 200, y: 100}, {x: 350, y: 200}, {x: 700, y: 400}]
+var nodes = d3.range(50).map(function() { return {radius: RADIUS}; })
+nodes.forEach(function(d) { d.id = ~~(Math.random() * foci.length)})
+var color = d3.scale.category10();
+
+// function for handling zoom event
+function zoomHandler() {
+  svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+}
+
+var w = window,
+    d = document,
+    e = d.documentElement,
+    g = d.getElementsByTagName('body')[0]
+
+//var w = 1200, h = 650;
+var width = w.innerWidth || e.clientWidth || g.clientWidth;
+var height = w.innerHeight|| e.clientHeight|| g.clientHeight;
+
+var force = d3.layout.force()
+    .gravity(0)
+//	.charge(function(d, i) { return i ? 0 : -2000; })
+    .nodes(nodes)
+    .size([width, height])
+	.links([])
+
+force.start();
+
+var svg = d3.select("#body").append("svg:svg")
+    .attr("width", width)
+    .attr("height", height)
+  .append("g")
+    .call(d3.behavior.zoom().scaleExtent([1, 8]).on("zoom", zoomHandler))
+  .append("g");
+
+svg.append("rect")
+    .attr("class", "overlay")
+    .attr("width", width)
+    .attr("height", height);
+
+var node = svg.selectAll("g")
+	.data(nodes)
+  .enter().append("g")
+
+var clipPath = node.append("clipPath")
+	.attr("id", "cut-off-bottom")
+
+clipPath.append("circle")
+    .attr("cx", function(d) { return d.radius - 2; })
+    .attr("cy", function(d) { return d.radius - 2; })
+    .attr("r", function(d) { return d.radius - 2; })
+
+node.append("image")
+	.attr("x", "0")
+	.attr("y", "0")
+	.attr("xlink:href", "a.jpg")
+    .attr("height", function(d) { return (d.radius-2) * 2; })
+    .attr("width", function(d) { return (d.radius-2) * 2; })
+	.attr("clip-path", "url(#cut-off-bottom)")
+
+force.on("tick", function(e) {
+   var k = .1 * e.alpha;
+   // Push nodes toward their designated focus.
+   nodes.forEach(function(o, i) {
+	       o.y += (foci[o.id].y - o.y) * k;
+		   o.x += (foci[o.id].x - o.x) * k;
+   });
+
+   var q = d3.geom.quadtree(nodes)
+   nodes.forEach(function(o) { q.visit(collide(o)) })
+
+   svg.selectAll("g")
+  		.attr("transform", function(d) { return "translate(" +d.x+ "," +d.y+")" });
+});
+
+function collide(node) {
+  var r = node.radius + 16,
+      nx1 = node.x - r,
+      nx2 = node.x + r,
+      ny1 = node.y - r,
+      ny2 = node.y + r;
+  return function(quad, x1, y1, x2, y2) {
+    if (quad.point && (quad.point !== node)) {
+      var x = node.x - quad.point.x,
+          y = node.y - quad.point.y,
+          l = Math.sqrt(x * x + y * y),
+          r = node.radius + quad.point.radius;
+      if (l < r) {
+        l = (l - r) / l * .5;
+        node.x -= x *= l;
+        node.y -= y *= l;
+        quad.point.x += x;
+        quad.point.y += y;
+      }
+    }
+    return x1 > nx2
+        || x2 < nx1
+        || y1 > ny2
+        || y2 < ny1;
+  };
+}
+
+</script>
+</body></html>

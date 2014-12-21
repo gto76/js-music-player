@@ -1,0 +1,72 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+import com.echonest.api.v4.EchoNestAPI;
+import com.echonest.api.v4.EchoNestException;
+import com.echonest.api.v4.TimedEvent;
+import com.echonest.api.v4.Track;
+import com.echonest.api.v4.TrackAnalysis;
+import java.io.File;
+import java.io.IOException;
+
+/**
+ * This example will demonstrate uploading an MP3, analyzing it and getting the
+ * audio summary and the timing info for all of the beats
+ *
+ * @author plamere
+ */
+public class JamendoAnalysis {
+
+    public static void main(String[] args) throws EchoNestException {
+        EchoNestAPI en = new EchoNestAPI("K8TNHHSAMCORDFDPX");
+
+        String path = "../JamendoDataset/"+args[0]+".mp3";
+		//System.out.println("path = "+path);
+
+        //if (args.length > 2) {
+         //   path = args[1];
+        //}
+
+        File file = new File(path);
+
+        if (!file.exists()) {
+            System.err.println("Can't find " + path);
+        } else {
+            try {
+				getData(file, en, args[0]);
+            } catch (IOException e) {
+                System.err.println("Trouble uploading file");
+			}
+        }
+    }
+
+	private static void getData(File file, EchoNestAPI en, String id) throws IOException {
+		try {
+			Track track = en.uploadTrack(file);
+			track.waitForAnalysis(30000);
+			if (track.getStatus() == Track.AnalysisStatus.COMPLETE) {
+				String artist = track.getArtistName();
+				String title = track.getTitle();
+				int key = track.getKey();
+				double tempo = track.getTempo();
+				//printJson(file, artist, title, key, tempo);
+				//System.out.print("\""+file+"\":{");
+				System.out.print("\""+id+"\":{");
+				System.out.print("\"artist\":\""+artist+"\",");
+				System.out.print("\"title\":\""+title+"\",");
+				System.out.print("\"key\":\""+key+"\",");
+				System.out.print("\"tempo\":\""+tempo+"\"");
+				System.out.println("},\\");
+			} else {
+				System.err.println("Trouble analysing track " + track.getStatus());
+			}
+	
+		} catch (EchoNestException f) {
+			getData(file, en, id);
+		}
+
+	}
+
+}

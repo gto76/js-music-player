@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# Usage: downloadImages <data-file>
+# 
+
+gi1 () 
+{ 
+    wget -qO- "http://images.google.com/images?q=$(echo "$@" | sed 's/ /+/g')" -U "Firefox on Ubuntu Gutsy: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.14) Gecko/20080418 Ubuntu/7.10 (gutsy) Firefox/2.0.0.14" | grep -o '<img[^>]*>' | head -n1 | grep "src=\"[^\"]*" -o | sed 's/src=\"//' | wget -i- -O-
+}
+
+IFS=$'\n'
+for line in  `cut -d ';' -f 1,2,3 "$1"`; do
+	file=`echo "$line" | sed 's/;.*//' | sed 's/\.mp3//'`
+	artist=`echo "$line" | sed 's/^[^;]*;//' | sed 's/;.*//'`
+	song=`echo "$line" | sed 's/^.*;//'`
+	gi1 "$artist" \""$song"\" > "$file".jpg
+done
+

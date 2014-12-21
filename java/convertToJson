@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# Usage: convertToJson <data-file>
+# 
+
+
+IFS=$'\n'
+for line in `cat "$1"`; do
+
+	file=`echo "$line" | sed 's/;.*//' | sed 's/\.mp3//'`
+	artist=`echo "$line" | sed 's/^[^;]*;//' | sed 's/;.*//'`
+	song=`echo "$line" | sed 's/^.*;//'`
+	gi1 "$artist" \""$song"\" > "$file".jpg
+done
+

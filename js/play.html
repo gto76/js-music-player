@@ -1,0 +1,320 @@
+<!DOCTYPE HTML>
+  <html>
+  <head>
+  <title>Audio</title>
+  <style>
+	#div1 {width:100px;height:70px;padding:10px;border:1px solid #aaaaaa;}
+	table {
+		border-collapse: collapse;
+	}
+	table, th, td {
+		border: 1px solid black;
+	}
+  </style>
+  </head>
+  <body>
+
+<div id="tableContainer"></div>
+
+<script src="jamendo-data.js"></script>
+
+  <script>
+  	var TEMPO_MARGIN_PERCENT = 1
+
+	songs = JSON.parse(songs);
+	var playingAudio=""
+	var songId = getParameterByName('songId');
+	if (songId == "") {
+		songId == "501"
+	}
+
+	var tempo = 0.0
+	var key = 0
+
+	var tableContainer = document.getElementById('tableContainer')
+	var tableString = ""
+
+	//o("tempo: "+tempo+"<br>")
+	//o("key: "+key+"<br>")
+	//o(songs.songs.a501.title)
+
+	generateTable()
+	generateAudioElements()
+
+	function setTempoAndKey() {
+		tempo = parseFloat(songs.songs["a"+songId].tempo)
+		key = parseInt(songs.songs["a"+songId].key)
+	}
+
+	function generateTable() {
+		tableString = ""
+		setTempoAndKey()
+		a()
+		for (i = 0; i < 8; i++) {
+			if (i == 7) {
+				bHeader()
+			} else {
+				b()
+			}
+			for (j = 0; j < 6; j++) {
+				if (j == 0) {
+					sideHeader(i)
+				} else {
+					c()	
+					tableCell(i, j)
+					cx()
+				}
+			}
+			bx()
+		}
+		ax()
+		tableContainer.innerHTML += tableString;
+	}
+
+	function sideHeader(i) {
+		cSideHeader()
+		if (i == 0) {
+			o('<b>6</b>')
+		} else if (i == 5) {
+			o('<b>5/7</b>')
+		} else if (i == 6) {
+			o('<b>unison</b>')
+		} else if (i == 7) {
+			o('')
+		} else {
+			o('<b>'+i+'</b>')
+		}
+		cx()
+	}
+
+	function tableCell(i, j) {
+		if (i == 7) {
+			if (j == 0) {
+				o('')
+			} else if (j == 1) {
+				o('<b>quartre tempo</b>')
+			} else if (j == 2) {
+				o('<b>half tempo</b>')
+			} else if (j == 3) {
+				o('<b>same tempo</b>')
+			} else if (j == 4) {
+				o('<b>double tempo</b>')
+			} else if (j == 5) {
+				o('<b>quadruple tempo</b>')
+			}
+		} else {
+			songIcon(i, j)
+		}
+	}
+
+	function songIcon(i, j) {
+		var newTempo = getNewTempo(tempo, j)
+		var newKeys = getNewKeys(key, i)
+		//o("tempo: "+newTempo+"<br>")
+		//o("keys: "+newKeys[0]+", "+newKeys[1]+"<br>")
+		//o("<div id=\"div1\" ondrop=\"drop(event)\" ondragover=\"allowDrop(event)\"></div>")
+		getMatchingSongs(newKeys, newTempo) }
+
+	function getNewTempo(tempo, j) {
+		if (j == 1) {
+			return tempo/4
+		} else if (j == 2) {
+			return tempo/2
+		} else if (j == 3) {
+			return tempo
+		} else if (j == 4) {
+			return tempo*2
+		} else if (j == 5) {
+			return tempo*4
+		}
+		return "invalid table column"
+	}
+
+	function getNewKeys() {
+		if (i == 0) {	
+			return calculateNewKeys(key, 6)
+		} else if (i == 1) {
+			return calculateNewKeys(key, 1)
+		} else if (i == 2) {
+			return calculateNewKeys(key, 2)
+		} else if (i == 3) {
+			return calculateNewKeys(key, 3)
+		} else if (i == 4) {
+			return calculateNewKeys(key, 4)
+		} else if (i == 5) {
+			return calculateNewKeys(key, 5)
+		} else if (i == 6) {
+			return calculateNewKeys(key, 0)
+		} 
+		return "invalid table row"
+	}
+
+	function calculateNewKeys(key, interval) {
+		var newHigherKey = key + interval
+		if (newHigherKey > 12) {
+			newHigherKey = newHigherKey - 12
+		}
+
+		var newLowerKey = key - interval
+		if (newLowerKey < 1) {
+			newLowerKey = 12 + newLowerKey
+		}
+
+		var newKeys = new Array()
+		newKeys[0] = newLowerKey
+		newKeys[1] = newHigherKey
+
+		return newKeys
+	}
+
+	function getMatchingSongs(newKeys, newTempo) {
+		//var key = songs.songs[songId].key
+		for(var id in songs.songs){
+            var song = songs.songs[id];
+			tempoMargin = newTempo/100 * TEMPO_MARGIN_PERCENT
+			if (song.tempo < newTempo+tempoMargin && song.tempo > newTempo-tempoMargin) {
+				if (song.key == newKeys[0] || song.key == newKeys[1]) {
+					//o(attrValue.artist)
+					var idNumber = id.slice(1)
+					insertSong(idNumber, song)
+				}
+			}
+        }
+	}
+
+	//##### SONG ICON #####
+
+	function insertSong(id, song) {
+		o("<input id=\""+id+"\" type=\"image\" value=\"PLAY\" onclick=\"iconClicked('"+id+"')\" src=\"../JamendoDataset/"+id+".jpg\" alt=\""+song.artist+"\n"+song.title+"\" title=\""+song.artist+"\n"+song.title+"\" draggable=\"true\" ondragstart=\"drag(event)\" height=\"50\" width=\"50\">")
+	}
+
+	function generateAudioElements() {
+		for (var id in songs.songs) {
+			id = id.slice(1)
+			document.write("<audio id=\"audio"+id+"\" src=\"../JamendoDataset/"+id+".mp3\" ></audio>")
+		}
+	}
+
+	//####### ON ICON CLICK #######
+
+	var lastClickTime = 0
+	var lastClickIcon = ""
+
+	function iconClicked(audioFileId) {
+		var d = new Date();
+		var time = d.getTime();
+		var timeDelta = time - lastClickTime
+		if (timeDelta < 200 && lastClickIcon == audioFileId) {
+			songId = audioFileId
+			//1: document.getElementById("mainTable").remove();
+
+			//2: var elem = document.getElementById('mainTable');
+			//elem.parentNode.removeChild(elem);
+
+			var list = document.getElementById("tableContainer");   
+			list.removeChild(list.childNodes[0]); 
+
+			generateTable()
+		} else {
+			lastClickTime = time
+			lastClickIcon = audioFileId
+			play(audioFileId)
+		}
+	}
+
+    function play(audioFileId){
+       var audio = document.getElementById("audio"+audioFileId);
+	   if (audio.paused) {
+		   if (playingAudio != "") {
+		   	playingAudio.pause();
+		   	playingAudio.currentTime = 0;
+		   }
+       	   audio.play();
+		   playingAudio=audio;
+	   } else {
+		   audio.pause();
+		   audio.currentTime = 0;
+	   }
+   }
+
+	Element.prototype.remove = function() {
+		this.parentElement.removeChild(this);
+	}
+	NodeList.prototype.remove = HTMLCollection.prototype.remove = function() {
+		for(var i = 0, len = this.length; i < len; i++) {
+			if(this[i] && this[i].parentElement) {
+				this[i].parentElement.removeChild(this[i]);
+			}
+		}
+	}
+
+
+	//#### WRITE UTIL ####
+
+	function a() {
+		o("<table id=\"mainTable\" style=\"border: 1px solid black; height: 100%; width: 100%; position:     absolute; top: 0; bottom: 0; left: 0; right: 0;\">")
+	}
+
+	function ax() {
+		o('</table>')
+	}
+
+	function b() {
+		o('<tr style=\"height: 14.285%\">')
+	}
+
+	function bHeader() {
+		o('<tr>')
+	}
+
+	function bx() {
+		o('</tr>')
+	}
+
+	function c() {
+		o('<td style=\"width: 20%; padding: 7px; text-align: center\">')
+	}
+
+	function cSideHeader() {
+		o('<td style=\"padding: 7px; text-align: center\">')
+	}
+
+	function cx() {
+		o('</td>')
+	}
+
+	function o(text) {
+		//tableContainer.innerHTML += text;
+		//document.write(text);
+		tableString += text
+	}
+
+
+
+	function getParameterByName(name) {
+		name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+		var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+			results = regex.exec(location.search);
+		return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+	}
+	//###### DRAG & DROP #######
+
+	function allowDrop(ev) {
+		ev.preventDefault();
+	}
+
+	function drag(ev) {
+		ev.dataTransfer.setData("text", ev.target.id);
+	}
+
+	function drop(ev) {
+		ev.preventDefault();
+		var data = ev.dataTransfer.getData("text");
+		ev.target.appendChild(document.getElementById(data));
+	}
+
+  </script>
+
+
+ </body>
+ </html>
