@@ -3,6 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <script src="d3.v3.min.js"></script>
+<script src="jamendo-data.js"></script>
 <style>
 .overlay {
   fill: none;
@@ -12,39 +13,61 @@
 </head>
 
 <body>
+
+<div id="audio"></div>
 <div id="body">
 <script type="text/javascript">
 
-
+var songs = JSON.parse(songs);
 var RADIUS = 20
-
-var foci = [{x: 200, y: 100}, {x: 350, y: 200}, {x: 700, y: 400}]
-var nodes = d3.range(50).map(function() { return {radius: RADIUS}; })
-nodes.forEach(function(d) { d.id = ~~(Math.random() * foci.length)})
 var color = d3.scale.category10();
 
-// function for handling zoom event
-function zoomHandler() {
-  svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-}
-
 var w = window,
-    d = document,
-    e = d.documentElement,
-    g = d.getElementsByTagName('body')[0]
+    e = document.documentElement,
+    g = document.getElementsByTagName('body')[0]
 
-//var w = 1200, h = 650;
 var width = w.innerWidth || e.clientWidth || g.clientWidth;
 var height = w.innerHeight|| e.clientHeight|| g.clientHeight;
 
-var force = d3.layout.force()
-    .gravity(0)
-//	.charge(function(d, i) { return i ? 0 : -2000; })
-    .nodes(nodes)
-    .size([width, height])
-	.links([])
 
-force.start();
+//##### NODES #####
+
+var numOfSongs = Object.keys(songs.songs).length
+var nodes = d3.range(numOfSongs).map(function() { return {radius: RADIUS}; })
+	
+nodes.forEach(function(d, i) { 
+	var keys = Object.keys(songs.songs)
+	var songIndex = keys[i]
+	d.id = songIndex.slice(1)
+
+	var tempo = songs.songs[songIndex].tempo
+	d.fociX = getFociX(tempo)
+	d.x = d.fociX
+
+	var key = songs.songs[songIndex].key
+	d.fociY = getFociY(key)
+	d.y = d.fociY
+})
+
+function getFociX(tempo) {
+	if (tempo == 0) {
+		tempo = Math.random()
+	}
+	var logOfTempo = Math.floor( Math.log(tempo) / Math.log(2));
+	var tempoFloor = Math.pow(2, logOfTempo)
+	var widthRatio = (tempo - tempoFloor) / tempoFloor
+	return width * widthRatio
+}
+
+function getFociY(key) {
+	var positions = [11, 4, 9, 2, 7, 12, 5, 10, 3, 8, 1, 6]
+	var pos = positions[key]
+	var heightRatio = pos / 12	
+	return height * heightRatio
+}
+
+
+//##### SVG #####
 
 var svg = d3.select("#body").append("svg:svg")
     .attr("width", width)
@@ -73,18 +96,33 @@ clipPath.append("circle")
 node.append("image")
 	.attr("x", "0")
 	.attr("y", "0")
-	.attr("xlink:href", "a.jpg")
+	.attr("xlink:href", function(d) { return "../JamendoDataset/"+ d.id + ".jpg" })
     .attr("height", function(d) { return (d.radius-2) * 2; })
     .attr("width", function(d) { return (d.radius-2) * 2; })
 	.attr("clip-path", "url(#cut-off-bottom)")
+	.on("click", function(d) { play(d.id) })
+
+function zoomHandler() {
+	svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+}
+
+
+//##### ON TICK #####
+
+var force = d3.layout.force()
+    .gravity(0)
+    .nodes(nodes)
+    .size([width, height])
+	.links([])
+
+force.start();
 
 force.on("tick", function(e) {
-   var k = .1 * e.alpha;
-   // Push nodes toward their designated focus.
-   nodes.forEach(function(o, i) {
-	       o.y += (foci[o.id].y - o.y) * k;
-		   o.x += (foci[o.id].x - o.x) * k;
-   });
+	var k = .1 * e.alpha;
+    nodes.forEach(function(o, i) {
+		o.y += (o.fociY - o.y) * k;
+		o.x += (o.fociX - o.x) * k;
+	});
 
    var q = d3.geom.quadtree(nodes)
    nodes.forEach(function(o) { q.visit(collide(o)) })
@@ -118,6 +156,39 @@ function collide(node) {
         || y1 > ny2
         || y2 < ny1;
   };
+}
+
+
+//##### AUDIO #####
+
+generateAudioElements()
+
+var playingAudio=""
+
+function generateAudioElements() {
+	var audioDiv = document.getElementById("audio")
+	for (var id in songs.songs) {
+		id = id.slice(1)
+		var audioElement = document.createElement("audio")
+		audioElement.setAttribute("id", "audio"+id);
+		audioElement.setAttribute("src", "../JamendoDataset/"+id+".mp3");
+		audioDiv.appendChild(audioElement)
+	}
+}
+
+function play(audioFileId){
+   var audio = document.getElementById("audio"+audioFileId);
+   if (audio.paused) {
+	   if (playingAudio != "") {
+			playingAudio.pause();
+			playingAudio.currentTime = 0;
+	   }
+	   audio.play();
+	   playingAudio=audio;
+   } else {
+	   audio.pause();
+	   audio.currentTime = 0;
+   }
 }
 
 </script>
