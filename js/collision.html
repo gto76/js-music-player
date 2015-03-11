@@ -16,6 +16,12 @@
 
 <div id="audio"></div>
 <div id="body">
+
+
+
+
+
+
 <script type="text/javascript">
 
 var songs = JSON.parse(songs);
@@ -33,19 +39,26 @@ var height = w.innerHeight|| e.clientHeight|| g.clientHeight;
 //##### NODES #####
 
 var numOfSongs = Object.keys(songs.songs).length
-var nodes = d3.range(numOfSongs).map(function() { return {radius: RADIUS}; })
+var nodes = d3.range(numOfSongs*2).map(function() { return {radius: RADIUS}; })
 	
 nodes.forEach(function(d, i) { 
 	var keys = Object.keys(songs.songs)
-	var songIndex = keys[i]
+	var songIndex = keys[i%numOfSongs]
 	d.id = songIndex.slice(1)
 
 	var tempo = songs.songs[songIndex].tempo
+
 	d.fociX = getFociX(tempo)
 	d.x = d.fociX
 
 	var key = songs.songs[songIndex].key
-	d.fociY = getFociY(key)
+
+	// TODO make TORUS spacd
+	if ((i/numOfSongs) < 1) {
+		d.fociY = getFociY(key);
+	} else {
+		d.fociY = getFociY(key) + height;
+	}
 	d.y = d.fociY
 })
 
@@ -69,6 +82,7 @@ function getFociY(key) {
 
 //##### SVG #####
 
+// TODO enlarge canvas
 var svg = d3.select("#body").append("svg:svg")
     .attr("width", width)
     .attr("height", height)
@@ -76,14 +90,41 @@ var svg = d3.select("#body").append("svg:svg")
     .call(d3.behavior.zoom().scaleExtent([1, 8]).on("zoom", zoomHandler))
   .append("g");
 
+// TODO enlarge canvas
 svg.append("rect")
     .attr("class", "overlay")
     .attr("width", width)
     .attr("height", height);
 
+// Utility function for drawing play triangle on icon
+var lineData = [ { "x": 1, "y": 5}, { "x": 20, "y": 20},
+					{ "x": 1, "y": 20}, { "x": 1, "y": 10 }];
+
+var lineFunction = d3.svg.line()
+	.x(function(d) { return d.x; })
+	.y(function(d) { return d.y; })
+	.interpolate("linear");
+
+
+// TODO tie triangle to playing function
 var node = svg.selectAll("g")
 	.data(nodes)
-  .enter().append("g")
+  	.enter().append("g")
+	.on("click", function(d) { 
+		play(d)
+		//g.select(this).on("play")();
+	})
+	.attr('id', function(d) { return 'name' + d.id; })
+//	.on("play", function(d) {
+//		console.log("called on play");
+//		var node1 = d3.select( '#name' + d.id );	
+//		node1.append("path")
+//			.attr("d", lineFunction(lineData))
+//			.attr("fill","black")
+//	   		.attr("fill-opacity","0.2")
+//			.attr("fill", "true")
+//	})
+
 
 var clipPath = node.append("clipPath")
 	.attr("id", "cut-off-bottom")
@@ -100,7 +141,6 @@ node.append("image")
     .attr("height", function(d) { return (d.radius) * 2; })
     .attr("width", function(d) { return (d.radius) * 2; })
 	.attr("clip-path", "url(#cut-off-bottom)")
-	.on("click", function(d) { play(d.id) })
 
 function zoomHandler() {
 	svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
@@ -163,32 +203,77 @@ function collide(node) {
 
 generateAudioElements()
 
-var playingAudio=""
+function onEnded() {
+	console.log("audio element is now playing.");
+}
 
 function generateAudioElements() {
 	var audioDiv = document.getElementById("audio")
 	for (var id in songs.songs) {
-		id = id.slice(1)
+		var id = id.slice(1)
 		var audioElement = document.createElement("audio")
 		audioElement.setAttribute("id", "audio"+id);
 		audioElement.setAttribute("src", "../JamendoDataset/"+id+".mp3");
+
+		// ENDED
+		audioElement.addEventListener('ended', function(e) {
+		  	console.log("audio element has ended. "+this.id);
+			var node = d3.select( '#name' + this.id.slice(5));
+			node.select("path").remove()
+		}, false);
+
+		// PLAY
+		audioElement.addEventListener('play', function(e) {
+			console.log("audio element has started. "+this.id);
+			var node = d3.select( '#name' + this.id.slice(5));
+			node.append("path")
+				.attr("d", lineFunction(lineData))
+				.attr("fill","black")
+		   		.attr("fill-opacity","0.2")
+				.attr("fill", "true")
+			
+		}, false);
+
+		// PAUSE
+		audioElement.addEventListener('pause', function(e) {
+		  	console.log("audio element has paused. "+this.id);
+			var node = d3.select( '#name' + this.id.slice(5));
+			node.select("path").remove()
+		}, false);
+
+
 		audioDiv.appendChild(audioElement)
 	}
 }
 
-function play(audioFileId){
-   var audio = document.getElementById("audio"+audioFileId);
-   if (audio.paused) {
-	   if (playingAudio != "") {
+var playingAudio=""
+
+function play(nodesData){
+	var audioFileId = nodesData.id
+	var node = d3.select( '#name' + audioFileId );	
+   	var audio = document.getElementById("audio"+audioFileId);
+   	if (audio.paused) {
+		//node1.on("play")();
+
+//		node.append("path")
+//			.attr("d", lineFunction(lineData))
+//			.attr("fill","black")
+//	   		.attr("fill-opacity","0.2")
+//			.attr("fill", "true")
+
+		if (playingAudio != "") {
 			playingAudio.pause();
 			playingAudio.currentTime = 0;
-	   }
-	   audio.play();
-	   playingAudio=audio;
-   } else {
-	   audio.pause();
-	   audio.currentTime = 0;
-   }
+		}
+	   	audio.play();
+	   	playingAudio=audio;
+   	} else {
+
+		//node.select("path").remove()
+
+	   	audio.pause();
+	   	audio.currentTime = 0;
+   	}
 }
 
 </script>
