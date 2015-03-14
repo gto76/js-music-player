@@ -18,14 +18,11 @@
 <div id="body">
 
 
-
-
-
-
 <script type="text/javascript">
 
 var songs = JSON.parse(songs);
 var RADIUS = 20
+var RADIUS_PLAYING = 40
 var color = d3.scale.category10();
 
 var w = window,
@@ -110,21 +107,8 @@ var lineFunction = d3.svg.line()
 var node = svg.selectAll("g")
 	.data(nodes)
   	.enter().append("g")
-	.on("click", function(d) { 
-		play(d)
-		//g.select(this).on("play")();
-	})
-	.attr('id', function(d) { return 'name' + d.id; })
-//	.on("play", function(d) {
-//		console.log("called on play");
-//		var node1 = d3.select( '#name' + d.id );	
-//		node1.append("path")
-//			.attr("d", lineFunction(lineData))
-//			.attr("fill","black")
-//	   		.attr("fill-opacity","0.2")
-//			.attr("fill", "true")
-//	})
-
+	.on("click", function(d) { play(d) })
+	.attr('id', function(d) { return 'name' + d.id })
 
 var clipPath = node.append("clipPath")
 	.attr("id", "cut-off-bottom")
@@ -217,30 +201,50 @@ function generateAudioElements() {
 
 		// ENDED
 		audioElement.addEventListener('ended', function(e) {
-		  	console.log("audio element has ended. "+this.id);
-			var node = d3.select( '#name' + this.id.slice(5));
+			var node = d3.select( '#name' + this.id.slice(5))
 			node.select("path").remove()
 		}, false);
 
 		// PLAY
 		audioElement.addEventListener('play', function(e) {
-			console.log("audio element has started. "+this.id);
-			var node = d3.select( '#name' + this.id.slice(5));
+			var node = d3.select( '#name' + this.id.slice(5))
 			node.append("path")
 				.attr("d", lineFunction(lineData))
 				.attr("fill","black")
 		   		.attr("fill-opacity","0.2")
 				.attr("fill", "true")
+
+// TEST >>
+//			node.attr("radius", "30");
+
+
+			console.log("circle.r: ");
+		
+			node.attr("radius", RADIUS_PLAYING)
+
+			node.select("clipPath")
+				.select("circle")
+				.attr("cx", function(d) { return RADIUS_PLAYING; })
+				.attr("cy", function(d) { return RADIUS_PLAYING; })
+				.attr("r", function(d) { return RADIUS_PLAYING; })
+
+			node.select("image")
+				.attr("x", -RADIUS_PLAYING/2)
+				.attr("y", -RADIUS_PLAYING/2)
+				.attr("height", function(d) { return RADIUS_PLAYING * 2; })
+				.attr("width", function(d) { return RADIUS_PLAYING * 2; })
+
+
+
+// << TEST
 			
 		}, false);
 
 		// PAUSE
 		audioElement.addEventListener('pause', function(e) {
-		  	console.log("audio element has paused. "+this.id);
-			var node = d3.select( '#name' + this.id.slice(5));
+			var node = d3.select( '#name' + this.id.slice(5))
 			node.select("path").remove()
 		}, false);
-
 
 		audioDiv.appendChild(audioElement)
 	}
@@ -253,14 +257,6 @@ function play(nodesData){
 	var node = d3.select( '#name' + audioFileId );	
    	var audio = document.getElementById("audio"+audioFileId);
    	if (audio.paused) {
-		//node1.on("play")();
-
-//		node.append("path")
-//			.attr("d", lineFunction(lineData))
-//			.attr("fill","black")
-//	   		.attr("fill-opacity","0.2")
-//			.attr("fill", "true")
-
 		if (playingAudio != "") {
 			playingAudio.pause();
 			playingAudio.currentTime = 0;
@@ -268,9 +264,6 @@ function play(nodesData){
 	   	audio.play();
 	   	playingAudio=audio;
    	} else {
-
-		//node.select("path").remove()
-
 	   	audio.pause();
 	   	audio.currentTime = 0;
    	}
