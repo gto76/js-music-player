@@ -37,20 +37,22 @@ var height = w.innerHeight|| e.clientHeight|| g.clientHeight;
 //##### NODES #####
 
 var numOfSongs = Object.keys(songs.songs).length
-var nodes = d3.range(numOfSongs*2).map(function() { return {radius: RADIUS}; })
+var nodes = d3.range(numOfSongs*2).map(function() { return {r: RADIUS}; })
 	
 nodes.forEach(function(d, i) { 
 	var keys = Object.keys(songs.songs)
 	var songIndex = keys[i%numOfSongs]
+	
+	// SET id
 	d.id = songIndex.slice(1)
 
+	// SET X
 	var tempo = songs.songs[songIndex].tempo
-
 	d.fociX = getFociX(tempo)
 	d.x = d.fociX
 
+	// SET Y
 	var key = songs.songs[songIndex].key
-
 	// TODO make TORUS spacd
 	if ((i/numOfSongs) < 1) {
 		d.fociY = getFociY(key);
@@ -58,6 +60,9 @@ nodes.forEach(function(d, i) {
 		d.fociY = getFociY(key) + height;
 	}
 	d.y = d.fociY
+
+	// SET R
+	d.fociR = d.r
 })
 
 function getFociX(tempo) {
@@ -117,16 +122,16 @@ var clipPath = node.append("clipPath")
 	.attr("id", "cut-off-bottom")
 
 clipPath.append("circle")
-    .attr("cx", function(d) { return d.radius; })
-    .attr("cy", function(d) { return d.radius; })
-    .attr("r", function(d) { return d.radius; })
+    .attr("cx", function(d) { return d.r; })
+    .attr("cy", function(d) { return d.r; })
+    .attr("r", function(d) { return d.r; })
 
 node.append("image")
 	.attr("x", "0")
 	.attr("y", "0")
 	.attr("xlink:href", function(d) { return "../JamendoDataset/"+ d.id + ".jpg" })
-    .attr("height", function(d) { return (d.radius) * 2; })
-    .attr("width", function(d) { return (d.radius) * 2; })
+    .attr("height", function(d) { return (d.r) * 2; })
+    .attr("width", function(d) { return (d.r) * 2; })
 	.attr("clip-path", "url(#cut-off-bottom)")
 
 function zoomHandler() {
@@ -134,16 +139,19 @@ function zoomHandler() {
 }
 
 function refreshNode(n) {
-	n.select("clipPath").select("circle")
-    .attr("cx", function(d) { return d.radius; })
-    .attr("cy", function(d) { return d.radius; })
-    .attr("r", function(d) { return d.radius; })
+	n.select("clipPath")
+	.attr("id", "cut-off-bottom")
+	.select("circle")
+    .attr("cx", function(d) { return d.r; })
+    .attr("cy", function(d) { return d.r; })
+    .attr("r", function(d) { return d.r; })
 
 	n.select("image")
 	.attr("x", "0")
 	.attr("y", "0")
-    .attr("height", function(d) { return (d.radius) * 2; })
-    .attr("width", function(d) { return (d.radius) * 2; })
+    .attr("height", function(d) { return (d.r) * 2; })
+    .attr("width", function(d) { return (d.r) * 2; })
+	.attr("clip-path", "url(#cut-off-bottom)")
 }
 
 function addPlayIcon(g) {
@@ -173,40 +181,62 @@ function shrinkPlayIcon(g) {
 }
 
 function enlargeNode(g) {
+/*
 	g
 			.transition()
 			.duration(TRANSITION_DURATION)
-			.attr("transform", "translate(-"+RADIUS+",-"+RADIUS+")scale(2.0)")
+			//.attr("transform", "translate(-"+RADIUS+",-"+RADIUS+")scale(2.0)")
+			.attr("transform", "scale(2.0)")
+*/
 
+	// TEST
+/*
+	console.log("nodes length is "+nodes.length)
+	nodes.forEach(function(n) {
+		console.log("n.r is "+n.r)
+		n.r = 88
+	})
+*/
+	// TEST
 
+	// ONLY IMAGE
 	//var image = g.select("image")
 	//enlargeImage(image)
 
+
 	nodes.forEach(function(d) {
 		var gId = g.attr("id").slice(4)
-		//console.log("d.id, g.id: "+d.id+", "+gId)
 		if (d.id == gId) {
-			d.radius = RADIUS * 2
+			d.fociR = RADIUS * 2
 		}
 	})
+
+	//refreshNode(g)
+
+	force.start();
 }
 
 function shrinkNode(g) {
+/*
 	g
 			.transition()
 			.duration(TRANSITION_DURATION)
 			.attr("transform", "scale(1.0)")
-
+*/
 	//var image = g.select("image")
 	//shrinkImage(image)
 
+
 	nodes.forEach(function(d) {
 		var gId = g.attr("id").slice(4)
-		//console.log("d.id, g.id: "+d.id+", "+gId)
 		if (d.id == gId) {
-			d.radius = RADIUS
+			d.fociR = RADIUS
 		}
 	})
+
+	//refreshNode(g)
+
+	force.start();
 }
 
 function enlargeImage(image) {
@@ -235,20 +265,32 @@ force.start();
 
 force.on("tick", function(e) {
 	var k = .1 * e.alpha;
-    nodes.forEach(function(o, i) {
-		o.y += (o.fociY - o.y) * k;
-		o.x += (o.fociX - o.x) * k;
+    nodes.forEach(function(o) {
+		o.y += (o.fociY - o.y) * k
+		o.x += (o.fociX - o.x) * k
+		if (o.r < o.fociR) {
+			o.r++
+			// select the right node (from node (or g)) and transform it
+			var g = d3.select( '#name' + o.id)
+			refreshNode(g)
+		} else if (o.r > o.fociR) {
+			o.r--
+			// select the right node (from node (or g)) and transform it
+			var g = d3.select( '#name' + o.id)
+			refreshNode(g)
+		}
 	});
 
    var q = d3.geom.quadtree(nodes)
    nodes.forEach(function(o) { q.visit(collide(o)) })
 
+	//// !!!!!!!!!!!!!!!!!!!!!
    svg.selectAll("g")
   		.attr("transform", function(d) { return "translate(" +d.x+ "," +d.y+")" });
 });
 
 function collide(node) {
-  var r = node.radius + 16,
+  var r = node.r + 16,
       nx1 = node.x - r,
       nx2 = node.x + r,
       ny1 = node.y - r,
@@ -258,7 +300,7 @@ function collide(node) {
       var x = node.x - quad.point.x,
           y = node.y - quad.point.y,
           l = Math.sqrt(x * x + y * y),
-          r = node.radius + quad.point.radius;
+          r = node.r + quad.point.r;
       if (l < r) {
         l = (l - r) / l * .5;
         node.x -= x *= l;
@@ -278,12 +320,6 @@ function collide(node) {
 //##### AUDIO #####
 
 generateAudioElements()
-
-function onEnded() {
-	console.log("audio element is now playing.");
-}
-
-
 
 function generateAudioElements() {
 	var audioDiv = document.getElementById("audio")
