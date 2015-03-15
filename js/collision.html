@@ -20,9 +20,10 @@
 
 <script type="text/javascript">
 
-var songs = JSON.parse(songs);
 var RADIUS = 20
-var RADIUS_PLAYING = 40
+var TRANSITION_DURATION = 500
+
+var songs = JSON.parse(songs);
 var color = d3.scale.category10();
 
 var w = window,
@@ -103,6 +104,8 @@ var lineFunction = d3.svg.line()
 	.interpolate("linear");
 
 
+//##### SVG NODE #####
+
 // TODO tie triangle to playing function
 var node = svg.selectAll("g")
 	.data(nodes)
@@ -130,6 +133,95 @@ function zoomHandler() {
 	svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 }
 
+function refreshNode(n) {
+	n.select("clipPath").select("circle")
+    .attr("cx", function(d) { return d.radius; })
+    .attr("cy", function(d) { return d.radius; })
+    .attr("r", function(d) { return d.radius; })
+
+	n.select("image")
+	.attr("x", "0")
+	.attr("y", "0")
+    .attr("height", function(d) { return (d.radius) * 2; })
+    .attr("width", function(d) { return (d.radius) * 2; })
+}
+
+function addPlayIcon(g) {
+	g.append("path")
+		.attr("d", lineFunction(lineData))
+   		.attr("fill-opacity","0.6")
+		.attr("fill", "true")
+}
+
+function removePlayIcon(g) {
+	g.select("path").remove()
+}
+
+function enlargePlayIcon(g) {
+/*
+	var icon = g.select("path")
+	var d = icon.select("d")
+	g
+		.transition()
+    	.duration(TRANSITION_DURATION)
+		.attr("transform", "translate(-"+RADIUS+",-"+RADIUS+")scale(2.0)")
+*/
+}
+
+function shrinkPlayIcon(g) {
+
+}
+
+function enlargeNode(g) {
+	g
+			.transition()
+			.duration(TRANSITION_DURATION)
+			.attr("transform", "translate(-"+RADIUS+",-"+RADIUS+")scale(2.0)")
+
+
+	//var image = g.select("image")
+	//enlargeImage(image)
+
+	nodes.forEach(function(d) {
+		var gId = g.attr("id").slice(4)
+		//console.log("d.id, g.id: "+d.id+", "+gId)
+		if (d.id == gId) {
+			d.radius = RADIUS * 2
+		}
+	})
+}
+
+function shrinkNode(g) {
+	g
+			.transition()
+			.duration(TRANSITION_DURATION)
+			.attr("transform", "scale(1.0)")
+
+	//var image = g.select("image")
+	//shrinkImage(image)
+
+	nodes.forEach(function(d) {
+		var gId = g.attr("id").slice(4)
+		//console.log("d.id, g.id: "+d.id+", "+gId)
+		if (d.id == gId) {
+			d.radius = RADIUS
+		}
+	})
+}
+
+function enlargeImage(image) {
+	image
+		.transition()
+    	.duration(TRANSITION_DURATION)
+		.attr("transform", "translate(-"+RADIUS+",-"+RADIUS+")scale(2.0)")
+}
+
+function shrinkImage(image) {
+	image
+		.transition()
+    	.duration(TRANSITION_DURATION)
+		.attr("transform", "scale(1.0)")
+}
 
 //##### ON TICK #####
 
@@ -191,6 +283,8 @@ function onEnded() {
 	console.log("audio element is now playing.");
 }
 
+
+
 function generateAudioElements() {
 	var audioDiv = document.getElementById("audio")
 	for (var id in songs.songs) {
@@ -201,49 +295,23 @@ function generateAudioElements() {
 
 		// ENDED
 		audioElement.addEventListener('ended', function(e) {
-			var node = d3.select( '#name' + this.id.slice(5))
-			node.select("path").remove()
+			var g = d3.select( '#name' + this.id.slice(5))
+			removePlayIcon(g)
+			shrinkNode(g)
 		}, false);
 
 		// PLAY
 		audioElement.addEventListener('play', function(e) {
-			var node = d3.select( '#name' + this.id.slice(5))
-			node.append("path")
-				.attr("d", lineFunction(lineData))
-				.attr("fill","black")
-		   		.attr("fill-opacity","0.2")
-				.attr("fill", "true")
-
-// TEST >>
-//			node.attr("radius", "30");
-
-
-			console.log("circle.r: ");
-		
-			node.attr("radius", RADIUS_PLAYING)
-
-			node.select("clipPath")
-				.select("circle")
-				.attr("cx", function(d) { return RADIUS_PLAYING; })
-				.attr("cy", function(d) { return RADIUS_PLAYING; })
-				.attr("r", function(d) { return RADIUS_PLAYING; })
-
-			node.select("image")
-				.attr("x", -RADIUS_PLAYING/2)
-				.attr("y", -RADIUS_PLAYING/2)
-				.attr("height", function(d) { return RADIUS_PLAYING * 2; })
-				.attr("width", function(d) { return RADIUS_PLAYING * 2; })
-
-
-
-// << TEST
-			
+			var g = d3.select( '#name' + this.id.slice(5))
+			addPlayIcon(g)
+			enlargeNode(g)			
 		}, false);
 
 		// PAUSE
 		audioElement.addEventListener('pause', function(e) {
-			var node = d3.select( '#name' + this.id.slice(5))
-			node.select("path").remove()
+			var g = d3.select( '#name' + this.id.slice(5))
+			removePlayIcon(g)
+			shrinkNode(g)
 		}, false);
 
 		audioDiv.appendChild(audioElement)
