@@ -23,6 +23,10 @@
 var RADIUS = 20
 var TRANSITION_DURATION = 500
 
+var TRIANGLE_SIZE_FACTOR = 0.72
+var TRIANGLE_TRANSITION = 500
+var TRIANGLE_OPACITY = 0.48
+
 var songs = JSON.parse(songs);
 var color = d3.scale.category10();
 
@@ -33,8 +37,9 @@ var w = window,
 var width = w.innerWidth || e.clientWidth || g.clientWidth;
 var height = w.innerHeight|| e.clientHeight|| g.clientHeight;
 
-
+//#################
 //##### NODES #####
+//#################
 
 var numOfSongs = Object.keys(songs.songs).length
 var nodes = d3.range(numOfSongs*2).map(function() { return {r: RADIUS}; })
@@ -53,7 +58,7 @@ nodes.forEach(function(d, i) {
 
 	// SET Y
 	var key = songs.songs[songIndex].key
-	// TODO make TORUS spacd
+	// TODO make TORUS space
 	if ((i/numOfSongs) < 1) {
 		d.fociY = getFociY(key);
 	} else {
@@ -82,8 +87,9 @@ function getFociY(key) {
 	return height * heightRatio
 }
 
-
+//###############
 //##### SVG #####
+//###############
 
 // TODO enlarge canvas
 var svg = d3.select("#body").append("svg:svg")
@@ -99,19 +105,10 @@ svg.append("rect")
     .attr("width", width)
     .attr("height", height);
 
-// Utility function for drawing play triangle on icon
-var lineData = [ { "x": 1, "y": 5}, { "x": 20, "y": 20},
-					{ "x": 1, "y": 20}, { "x": 1, "y": 10 }];
-
-var lineFunction = d3.svg.line()
-	.x(function(d) { return d.x; })
-	.y(function(d) { return d.y; })
-	.interpolate("linear");
-
-
+//####################
 //##### SVG NODE #####
+//####################
 
-// TODO tie triangle to playing function
 var node = svg.selectAll("g")
 	.data(nodes)
   	.enter().append("g")
@@ -138,122 +135,65 @@ function zoomHandler() {
 	svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 }
 
-function refreshNode(n) {
-	n.select("clipPath")
-	.attr("id", "cut-off-bottom")
-	.select("circle")
-    .attr("cx", function(d) { return d.r; })
-    .attr("cy", function(d) { return d.r; })
-    .attr("r", function(d) { return d.r; })
-
-	n.select("image")
-	.attr("x", "0")
-	.attr("y", "0")
-    .attr("height", function(d) { return (d.r) * 2; })
-    .attr("width", function(d) { return (d.r) * 2; })
-	.attr("clip-path", "url(#cut-off-bottom)")
-}
-
-function addPlayIcon(g) {
-	g.append("path")
-		.attr("d", lineFunction(lineData))
-   		.attr("fill-opacity","0.6")
-		.attr("fill", "true")
-}
-
-function removePlayIcon(g) {
-	g.select("path").remove()
-}
-
-function enlargePlayIcon(g) {
-/*
-	var icon = g.select("path")
-	var d = icon.select("d")
-	g
-		.transition()
-    	.duration(TRANSITION_DURATION)
-		.attr("transform", "translate(-"+RADIUS+",-"+RADIUS+")scale(2.0)")
-*/
-}
-
-function shrinkPlayIcon(g) {
-
-}
-
 function enlargeNode(g) {
-/*
-	g
-			.transition()
-			.duration(TRANSITION_DURATION)
-			//.attr("transform", "translate(-"+RADIUS+",-"+RADIUS+")scale(2.0)")
-			.attr("transform", "scale(2.0)")
-*/
-
-	// TEST
-/*
-	console.log("nodes length is "+nodes.length)
-	nodes.forEach(function(n) {
-		console.log("n.r is "+n.r)
-		n.r = 88
-	})
-*/
-	// TEST
-
-	// ONLY IMAGE
-	//var image = g.select("image")
-	//enlargeImage(image)
-
-
 	nodes.forEach(function(d) {
 		var gId = g.attr("id").slice(4)
 		if (d.id == gId) {
 			d.fociR = RADIUS * 2
 		}
 	})
-
-	//refreshNode(g)
-
 	force.start();
 }
 
 function shrinkNode(g) {
-/*
-	g
-			.transition()
-			.duration(TRANSITION_DURATION)
-			.attr("transform", "scale(1.0)")
-*/
-	//var image = g.select("image")
-	//shrinkImage(image)
-
-
 	nodes.forEach(function(d) {
 		var gId = g.attr("id").slice(4)
 		if (d.id == gId) {
 			d.fociR = RADIUS
 		}
 	})
-
-	//refreshNode(g)
-
 	force.start();
 }
 
-function enlargeImage(image) {
-	image
-		.transition()
-    	.duration(TRANSITION_DURATION)
-		.attr("transform", "translate(-"+RADIUS+",-"+RADIUS+")scale(2.0)")
+function addPlayIcon(g) {
+	var s = TRIANGLE_SIZE_FACTOR
+	var r = RADIUS
+
+	var triangle = [ 
+			{ "x": r - (r*0.55 * s), "y": r - (r*0.45 * s) }, 
+			{ "x": r + (r*0.75 * s), "y": r },
+			{ "x": r - (r*0.55 * s), "y": r + (r*0.45 * s) }
+		];
+
+	var lineFunction = d3.svg.line()
+			.x(function(d) { return d.x; })
+			.y(function(d) { return d.y; })
+			.interpolate("linear");
+
+
+	g.select("path").remove()
+
+	var path = g.append("path")
+		.attr("d", lineFunction(triangle))
+   		.attr("fill-opacity","0.0")
+		.attr("fill", "true")
+
+    path
+        .transition()
+        .duration(TRIANGLE_TRANSITION)
+        .attr("fill-opacity", TRIANGLE_OPACITY)
 }
 
-function shrinkImage(image) {
-	image
-		.transition()
-    	.duration(TRANSITION_DURATION)
-		.attr("transform", "scale(1.0)")
+function removePlayIcon(g) {
+	g.select("path")
+        .transition()
+        .duration(TRIANGLE_TRANSITION)
+        .attr("fill-opacity", 0.0)
 }
 
+//###################
 //##### ON TICK #####
+//###################
 
 var force = d3.layout.force()
     .gravity(0)
@@ -270,30 +210,14 @@ force.on("tick", function(e) {
 		o.x += (o.fociX - o.x) * k
 		if (o.r < o.fociR) {
 			o.r++
-			var g = d3.select( '#name' + o.id)
-//			g
-//				.attr("transform", "scale("+o.r/RADIUS+")")
-
-//			g
-//					.transition()
-//					.duration(TRANSITION_DURATION)
-					//.attr("transform", "translate(-"+RADIUS+",-"+RADIUS+")scale(2.0)")
-//					.attr("transform", "scale(2.0)")
-
-
-			//refreshNode(g)
 		} else if (o.r > o.fociR) {
 			o.r--
-			// select the right node (from node (or g)) and transform it
-			var g = d3.select( '#name' + o.id)
-			//refreshNode(g)
 		}
 	});
 
    var q = d3.geom.quadtree(nodes)
    nodes.forEach(function(o) { q.visit(collide(o)) })
 
-	//// !!!!!!!!!!!!!!!!!!!!!
    svg.selectAll("g")
   		.attr("transform", function(d) { 
 			var relativeSize = d.r/RADIUS
@@ -330,8 +254,9 @@ function collide(node) {
   };
 }
 
-
+//#################
 //##### AUDIO #####
+//#################
 
 generateAudioElements()
 
