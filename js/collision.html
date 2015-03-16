@@ -270,14 +270,23 @@ force.on("tick", function(e) {
 		o.x += (o.fociX - o.x) * k
 		if (o.r < o.fociR) {
 			o.r++
-			// select the right node (from node (or g)) and transform it
 			var g = d3.select( '#name' + o.id)
-			refreshNode(g)
+//			g
+//				.attr("transform", "scale("+o.r/RADIUS+")")
+
+//			g
+//					.transition()
+//					.duration(TRANSITION_DURATION)
+					//.attr("transform", "translate(-"+RADIUS+",-"+RADIUS+")scale(2.0)")
+//					.attr("transform", "scale(2.0)")
+
+
+			//refreshNode(g)
 		} else if (o.r > o.fociR) {
 			o.r--
 			// select the right node (from node (or g)) and transform it
 			var g = d3.select( '#name' + o.id)
-			refreshNode(g)
+			//refreshNode(g)
 		}
 	});
 
@@ -286,7 +295,12 @@ force.on("tick", function(e) {
 
 	//// !!!!!!!!!!!!!!!!!!!!!
    svg.selectAll("g")
-  		.attr("transform", function(d) { return "translate(" +d.x+ "," +d.y+")" });
+  		.attr("transform", function(d) { 
+			var relativeSize = d.r/RADIUS
+			var x = d.x - d.r
+			var y = d.y - d.r
+			return "translate("+x+","+y+")scale("+relativeSize+")" 
+		});
 });
 
 function collide(node) {
