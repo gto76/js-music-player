@@ -271,6 +271,45 @@ function collide(node) {
 
 generateAudioElements()
 
+
+// TODO: NEW - TEST!!! -->
+			
+var alreadyPlayedTracks = []
+// when we click on any track list gets emptied
+// when tracks ends (or pauses) it gets added to the list
+
+// AUTOPLAY
+// when track ends it finds the closest one that is not on the list
+// and plays it
+// -> what about crossfade
+// something has to trigger t time before teh end of the track
+
+var AUTOPLAY = true
+
+function findClosestNode(nodeIn) {
+	var Map distances
+	for (var n in node) {
+		distances.add(n, getDistance(nodeIn, n)
+	}
+	distances.sort()
+	for (var nodeWithDistance in distances.entries()) {
+		var nodeOut = nodeWithDistances.key()
+		var notYetPlayed = alreadyPlayedTracks.contains(nodeOut)
+		if (notYetPlayed) {
+			return nodeOut
+		}
+	}
+	return null
+}
+
+function getDistance(node1, node2) {
+	var dx = node1.fociX - node2.fociX
+	var dy = node1.fociY - node2.fociY
+	return Math.sqrt(Math.pow(dx) + Math.pow(dy))
+}
+
+// <-- TODO: NEW - TEST!!!
+
 function generateAudioElements() {
 	var audioDiv = document.getElementById("audio")
 	for (var id in songs.songs) {
@@ -284,6 +323,11 @@ function generateAudioElements() {
 			var g = d3.select( '#name' + this.id.slice(5))
 			removePlayIcon(g)
 			shrinkNode(g)
+			// TODO: NEW - TEST!!!
+			if (AUTOPLAY) {
+				val nextSong = findClosestNode(g)
+				play(nextSong)
+			}
 		}, false);
 
 		// PLAY
