@@ -45,28 +45,28 @@ var height = w.innerHeight|| e.clientHeight|| g.clientHeight;
 //#################
 
 var numOfSongs = Object.keys(songs.songs).length
-var nodes = d3.range(numOfSongs*2).map(function() { return {r: RADIUS}; })
+// Each node has 9 bubles, each in one sector,
+// There are 9 sectors that resamble limited torus surface
+var nodes = d3.range(numOfSongs*9).map(function() { return {r: RADIUS}; })
 	
 nodes.forEach(function(d, i) { 
+	// SET id
 	var keys = Object.keys(songs.songs)
 	var songIndex = keys[i%numOfSongs]
-	
-	// SET id
 	d.id = songIndex.slice(1)
+	
+	var sectorIndex = Math.floor(i/numOfSongs)
 
 	// SET X
 	var tempo = songs.songs[songIndex].tempo
-	d.fociX = getFociX(tempo)
+	var sectorX = sectorIndex % 3
+	d.fociX = getFociX(tempo) + sectorX * width
 	d.x = d.fociX
 
 	// SET Y
 	var key = songs.songs[songIndex].key
-	// TODO make TORUS space
-	if ((i/numOfSongs) < 1) {
-		d.fociY = getFociY(key);
-	} else {
-		d.fociY = getFociY(key) + height;
-	}
+	var sectorY = Math.floor(sectorIndex/3)
+	d.fociY = getFociY(key) + sectorY * height
 	d.y = d.fociY
 
 	// SET R
@@ -94,7 +94,6 @@ function getFociY(key) {
 //##### SVG #####
 //###############
 
-// TODO enlarge canvas
 var svg = d3.select("#body").append("svg:svg")
     .attr("width", width)
     .attr("height", height)
@@ -102,11 +101,10 @@ var svg = d3.select("#body").append("svg:svg")
     .call(d3.behavior.zoom().scaleExtent([1, 8]).on("zoom", zoomHandler))
   .append("g");
 
-// TODO enlarge canvas
 svg.append("rect")
     .attr("class", "overlay")
-    .attr("width", width)
-    .attr("height", height);
+    .attr("width", width*3)
+    .attr("height", height*3);
 
 //####################
 //##### SVG NODE #####
