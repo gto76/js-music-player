@@ -23,9 +23,12 @@
 var RADIUS = 20
 var TRANSITION_DURATION = 500
 
+var NODE_GROWTH_RATE = 1
+
 var TRIANGLE_SIZE_FACTOR = 0.72
 var TRIANGLE_TRANSITION = 500
-var TRIANGLE_OPACITY = 0.48
+var TRIANGLE_COLOR = "black"
+var TRIANGLE_BORDER_COLOR = "white"
 
 var songs = JSON.parse(songs);
 var color = d3.scale.category10();
@@ -159,10 +162,13 @@ function addPlayIcon(g) {
 	var s = TRIANGLE_SIZE_FACTOR
 	var r = RADIUS
 
+	// there are five points so that all the corners are rendered nicely
 	var triangle = [ 
 			{ "x": r - (r*0.55 * s), "y": r - (r*0.45 * s) }, 
 			{ "x": r + (r*0.75 * s), "y": r },
-			{ "x": r - (r*0.55 * s), "y": r + (r*0.45 * s) }
+			{ "x": r - (r*0.55 * s), "y": r + (r*0.45 * s) },
+			{ "x": r - (r*0.55 * s), "y": r - (r*0.45 * s) },
+			{ "x": r + (r*0.75 * s), "y": r }
 		];
 
 	var lineFunction = d3.svg.line()
@@ -170,18 +176,22 @@ function addPlayIcon(g) {
 			.y(function(d) { return d.y; })
 			.interpolate("linear");
 
-
 	g.select("path").remove()
 
 	var path = g.append("path")
 		.attr("d", lineFunction(triangle))
+		.attr("stroke", TRIANGLE_BORDER_COLOR)
+		.attr("stroke-opacity", "0.0")
+		.attr("stroke-width", "0.7")
    		.attr("fill-opacity","0.0")
 		.attr("fill", "true")
+		.attr("fill", TRIANGLE_COLOR)
 
     path
         .transition()
         .duration(TRIANGLE_TRANSITION)
-        .attr("fill-opacity", TRIANGLE_OPACITY)
+        .attr("fill-opacity", 0.48)
+		.attr("stroke-opacity", 0.22)
 }
 
 function removePlayIcon(g) {
@@ -189,6 +199,7 @@ function removePlayIcon(g) {
         .transition()
         .duration(TRIANGLE_TRANSITION)
         .attr("fill-opacity", 0.0)
+		.attr("stroke-opacity", 0.0) 
 }
 
 //###################
@@ -209,9 +220,9 @@ force.on("tick", function(e) {
 		o.y += (o.fociY - o.y) * k
 		o.x += (o.fociX - o.x) * k
 		if (o.r < o.fociR) {
-			o.r++
+			o.r = o.r + NODE_GROWTH_RATE
 		} else if (o.r > o.fociR) {
-			o.r--
+			o.r = o.r - NODE_GROWTH_RATE
 		}
 	});
 
