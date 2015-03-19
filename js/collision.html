@@ -21,7 +21,11 @@
 <script type="text/javascript">
 
 var RADIUS = 20
-var TRANSITION_DURATION = 500
+
+// Number of sectors in one dimension, actual number of sectors is the power of two.
+// Each sector contains a copy of all the nodes.
+// This enables scrolling over the edge
+var NUMBER_OF_SECTORS = 2
 
 var NODE_GROWTH_RATE = 2
 
@@ -47,27 +51,27 @@ var height = w.innerHeight|| e.clientHeight|| g.clientHeight;
 //################
 
 var numOfSongs = Object.keys(songs.songs).length
-// Each node has 9 bubles, each in one sector,
-// There are 9 sectors that resamble limited torus surface
-var nodes = d3.range(numOfSongs*9).map(function() { return {r: RADIUS}; })
+
+// Each node has 4 bubles, each in one sector,
+var nodes = d3.range(numOfSongs*NUMBER_OF_SECTORS*NUMBER_OF_SECTORS).map(function() { return {r: RADIUS}; })
 	
 nodes.forEach(function(d, i) { 
 	// SET id
 	var keys = Object.keys(songs.songs)
 	var songIndex = keys[i%numOfSongs]
 	d.id = songIndex.slice(1)
-	
+
 	var sectorIndex = Math.floor(i/numOfSongs)
 
 	// SET X
 	var tempo = songs.songs[songIndex].tempo
-	var sectorX = sectorIndex % 3
+	var sectorX = sectorIndex % NUMBER_OF_SECTORS
 	d.fociX = getFociX(tempo) + sectorX * width
 	d.x = d.fociX
 
 	// SET Y
 	var key = songs.songs[songIndex].key
-	var sectorY = Math.floor(sectorIndex/3)
+	var sectorY = Math.floor(sectorIndex/NUMBER_OF_SECTORS)
 	d.fociY = getFociY(key) + sectorY * height
 	d.y = d.fociY
 
@@ -95,6 +99,20 @@ function getFociY(key) {
 	return height * heightRatio
 }
 
+// Add to every node the map of the distances to other nodes
+nodes.forEach(function(d) { 
+	d.distances = {}
+	nodes.forEach(function(e) {
+		d.distances[e.id] = getDistance(d, e)
+	})
+})
+
+function getDistance(node1, node2) {
+	var dx = node1.fociX - node2.fociX
+	var dy = node1.fociY - node2.fociY
+	return Math.sqrt(Math.pow(dx,2) + Math.pow(dy,2))
+}
+
 //###############
 //##### SVG #####
 //###############
@@ -108,8 +126,8 @@ var svg = d3.select("#body").append("svg:svg")
 
 svg.append("rect")
     .attr("class", "overlay")
-    .attr("width", width*3)
-    .attr("height", height*3);
+    .attr("width", width*NUMBER_OF_SECTORS)
+    .attr("height", height*NUMBER_OF_SECTORS);
 
 //#################
 //##### NODES #####
@@ -263,44 +281,9 @@ function collide(node) {
 
 generateAudioElements()
 
-
-// TODO: NEW - TEST!!! -->
-			
-var alreadyPlayedTracks = []
-// when we click on any track list gets emptied
-// when tracks ends (or pauses) it gets added to the list
-
-// AUTOPLAY
-// when track ends it finds the closest one that is not on the list
-// and plays it
-// -> what about crossfade
-// something has to trigger t time before teh end of the track
-
 var AUTOPLAY = true
+var alreadyPlayedTracks = []
 
-function findClosestNode(nodeIn) {
-	var Map distances
-	for (var n in node) {
-		distances.add(n, getDistance(nodeIn, n)
-	}
-	distances.sort()
-	for (var nodeWithDistance in distances.entries()) {
-		var nodeOut = nodeWithDistances.key()
-		var notYetPlayed = alreadyPlayedTracks.contains(nodeOut)
-		if (notYetPlayed) {
-			return nodeOut
-		}
-	}
-	return null
-}
-
-function getDistance(node1, node2) {
-	var dx = node1.fociX - node2.fociX
-	var dy = node1.fociY - node2.fociY
-	return Math.sqrt(Math.pow(dx) + Math.pow(dy))
-}
-
-// <-- TODO: NEW - TEST!!!
 
 function generateAudioElements() {
 	var audioDiv = document.getElementById("audio")
@@ -312,24 +295,25 @@ function generateAudioElements() {
 
 		// ENDED
 		audioElement.addEventListener('ended', function(e) {
-			var g = d3.select( '#name' + this.id.slice(5))
+			var g = d3.select('#name' + this.id.slice(5))
 			shrinkNode(g)
-			// TODO: NEW - TEST!!!
 			if (AUTOPLAY) {
-				val nextSong = findClosestNode(g)
+				alreadyPlayedTracks.push(this.id.slice(5))
+				console.log("alreadyPlayed "+alreadyPlayedTracks)
+				var nextSong = findClosestNode(g)
 				play(nextSong)
 			}
 		}, false);
 
 		// PLAY
 		audioElement.addEventListener('play', function(e) {
-			var g = d3.select( '#name' + this.id.slice(5))
+			var g = d3.select('#name' + this.id.slice(5))
 			enlargeNode(g)			
 		}, false);
 
 		// PAUSE
 		audioElement.addEventListener('pause', function(e) {
-			var g = d3.select( '#name' + this.id.slice(5))
+			var g = d3.select('#name' + this.id.slice(5))
 			shrinkNode(g)
 		}, false);
 
@@ -355,6 +339,41 @@ function play(nodesData){
 	   	audio.currentTime = 0;
    	}
 }
+
+function findClosestNode(nodeIn) {
+	var closestNode = null
+	var smallestDistance = 99999
+
+	nodes.forEach(function(d) {
+		var nodeInId = nodeIn.attr("id").slice(4)
+		var distance = d.distances[nodeInId]
+		var nodeIsNotTheSameOne = nodeInId != d.id
+		var nodeIsClosestOneYet = distance < smallestDistance
+		var songHasntBeenPlayedYet = !contains(alreadyPlayedTracks, d.id)
+		if (nodeIsNotTheSameOne && nodeIsClosestOneYet && songHasntBeenPlayedYet) {
+			closestNode = d
+			smallestDistance = distance
+			console.log("closestNode "+d)
+			console.log("smallestDistance "+distance)
+		}
+	})
+	return closestNode
+}
+
+//################
+//##### UTIL #####
+//################
+
+function contains(a, obj) {
+    var i = a.length;
+    while (i--) {
+       if (a[i] === obj) {
+           return true;
+       }
+    }
+    return false;
+}
+
 
 </script>
 </body></html>
