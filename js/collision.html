@@ -108,26 +108,26 @@ nodes.forEach(function(d) {
 })
 
 function getDistance(node1, node2) {
-	var distance = getDistance(node1.fociX, node1.fociY, node2.fociX, node2.focyY)
+	var distance = getDistanceA(node1.fociX, node1.fociY, node2.fociX, node2.fociY)
 	// It needs to check if any distance to the node in
-	// anjecent sectors of the torus space is smaller then the
+	// adjacent sectors of the torus space is smaller then the
 	// one inside its own sector
-		/*
+	// NOTE: it will also work without it for the upper left corner nodes,
+	// but not for the lower right. I don't know why.
 	for (i = -1; i <= 1; i++) {
 		for (j = -1; j <= 1; j++) {
 			var x2 = node2.fociX + width*i
 			var y2 = node2.fociY + height*i
-			var distanceCandidate = getDistance(node1.fociX, node1.fociY, x2, y2)
+			var distanceCandidate = getDistanceA(node1.fociX, node1.fociY, x2, y2)
 			if (distanceCandidate < distance) {
 				distance = distanceCandidate
 			}
 		}
 	}
-	*/
 	return distance
 }
 
-function getDistance(x1, y1, x2, y2) {
+function getDistanceA(x1, y1, x2, y2) {
 	var dx = x1 - x2 
 	var dy = y1 - y2
 	return Math.sqrt(Math.pow(dx,2) + Math.pow(dy,2))
