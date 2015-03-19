@@ -23,12 +23,14 @@
 var RADIUS = 20
 var TRANSITION_DURATION = 500
 
-var NODE_GROWTH_RATE = 1
+var NODE_GROWTH_RATE = 2
 
 var TRIANGLE_SIZE_FACTOR = 0.72
 var TRIANGLE_TRANSITION = 500
 var TRIANGLE_COLOR = "black"
 var TRIANGLE_BORDER_COLOR = "white"
+var TRIANGLE_FILL_OPACITY = 0.48
+var TRIANGLE_STROKE_OPACITY = 0.22
 
 var songs = JSON.parse(songs);
 var color = d3.scale.category10();
@@ -40,33 +42,33 @@ var w = window,
 var width = w.innerWidth || e.clientWidth || g.clientWidth;
 var height = w.innerHeight|| e.clientHeight|| g.clientHeight;
 
-//#################
-//##### NODES #####
-//#################
+//################
+//##### DATA #####
+//################
 
 var numOfSongs = Object.keys(songs.songs).length
-var nodes = d3.range(numOfSongs*2).map(function() { return {r: RADIUS}; })
+// Each node has 9 bubles, each in one sector,
+// There are 9 sectors that resamble limited torus surface
+var nodes = d3.range(numOfSongs*9).map(function() { return {r: RADIUS}; })
 	
 nodes.forEach(function(d, i) { 
+	// SET id
 	var keys = Object.keys(songs.songs)
 	var songIndex = keys[i%numOfSongs]
-	
-	// SET id
 	d.id = songIndex.slice(1)
+	
+	var sectorIndex = Math.floor(i/numOfSongs)
 
 	// SET X
 	var tempo = songs.songs[songIndex].tempo
-	d.fociX = getFociX(tempo)
+	var sectorX = sectorIndex % 3
+	d.fociX = getFociX(tempo) + sectorX * width
 	d.x = d.fociX
 
 	// SET Y
 	var key = songs.songs[songIndex].key
-	// TODO make TORUS space
-	if ((i/numOfSongs) < 1) {
-		d.fociY = getFociY(key);
-	} else {
-		d.fociY = getFociY(key) + height;
-	}
+	var sectorY = Math.floor(sectorIndex/3)
+	d.fociY = getFociY(key) + sectorY * height
 	d.y = d.fociY
 
 	// SET R
@@ -84,6 +86,9 @@ function getFociX(tempo) {
 }
 
 function getFociY(key) {
+	// the keys are ordered in circle of fifths,
+	// so that songs with keys that sound nicer together get positioned 
+	// closer to one another 
 	var positions = [11, 4, 9, 2, 7, 12, 5, 10, 3, 8, 1, 6]
 	var pos = positions[key]
 	var heightRatio = pos / 12	
@@ -94,7 +99,6 @@ function getFociY(key) {
 //##### SVG #####
 //###############
 
-// TODO enlarge canvas
 var svg = d3.select("#body").append("svg:svg")
     .attr("width", width)
     .attr("height", height)
@@ -102,15 +106,14 @@ var svg = d3.select("#body").append("svg:svg")
     .call(d3.behavior.zoom().scaleExtent([1, 8]).on("zoom", zoomHandler))
   .append("g");
 
-// TODO enlarge canvas
 svg.append("rect")
     .attr("class", "overlay")
-    .attr("width", width)
-    .attr("height", height);
+    .attr("width", width*3)
+    .attr("height", height*3);
 
-//####################
-//##### SVG NODE #####
-//####################
+//#################
+//##### NODES #####
+//#################
 
 var node = svg.selectAll("g")
 	.data(nodes)
@@ -133,6 +136,8 @@ node.append("image")
     .attr("height", function(d) { return (d.r) * 2; })
     .attr("width", function(d) { return (d.r) * 2; })
 	.attr("clip-path", "url(#cut-off-bottom)")
+
+addPlayIcon(node)
 
 function zoomHandler() {
 	svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
@@ -158,11 +163,11 @@ function shrinkNode(g) {
 	force.start();
 }
 
-function addPlayIcon(g) {
+function addPlayIcon(ggg) {
 	var s = TRIANGLE_SIZE_FACTOR
 	var r = RADIUS
 
-	// there are five points so that all the corners are rendered nicely
+	// there are five points so that all corners are rendered nicely
 	var triangle = [ 
 			{ "x": r - (r*0.55 * s), "y": r - (r*0.45 * s) }, 
 			{ "x": r + (r*0.75 * s), "y": r },
@@ -176,9 +181,7 @@ function addPlayIcon(g) {
 			.y(function(d) { return d.y; })
 			.interpolate("linear");
 
-	g.select("path").remove()
-
-	var path = g.append("path")
+	var path = ggg.append("path")
 		.attr("d", lineFunction(triangle))
 		.attr("stroke", TRIANGLE_BORDER_COLOR)
 		.attr("stroke-opacity", "0.0")
@@ -186,20 +189,6 @@ function addPlayIcon(g) {
    		.attr("fill-opacity","0.0")
 		.attr("fill", "true")
 		.attr("fill", TRIANGLE_COLOR)
-
-    path
-        .transition()
-        .duration(TRIANGLE_TRANSITION)
-        .attr("fill-opacity", 0.48)
-		.attr("stroke-opacity", 0.22)
-}
-
-function removePlayIcon(g) {
-	g.select("path")
-        .transition()
-        .duration(TRIANGLE_TRANSITION)
-        .attr("fill-opacity", 0.0)
-		.attr("stroke-opacity", 0.0) 
 }
 
 //###################
@@ -235,7 +224,10 @@ force.on("tick", function(e) {
 			var x = d.x - d.r
 			var y = d.y - d.r
 			return "translate("+x+","+y+")scale("+relativeSize+")" 
-		});
+		})
+		.select("path") // transparency of play icon depends on the radius
+			.attr("fill-opacity", function(d) { return ((d.r/RADIUS)-1) * TRIANGLE_FILL_OPACITY })
+			.attr("stroke-opacity",function(d) { return ((d.r/RADIUS)-1) * TRIANGLE_STROKE_OPACITY }) 
 });
 
 function collide(node) {
@@ -321,7 +313,6 @@ function generateAudioElements() {
 		// ENDED
 		audioElement.addEventListener('ended', function(e) {
 			var g = d3.select( '#name' + this.id.slice(5))
-			removePlayIcon(g)
 			shrinkNode(g)
 			// TODO: NEW - TEST!!!
 			if (AUTOPLAY) {
@@ -333,14 +324,12 @@ function generateAudioElements() {
 		// PLAY
 		audioElement.addEventListener('play', function(e) {
 			var g = d3.select( '#name' + this.id.slice(5))
-			addPlayIcon(g)
 			enlargeNode(g)			
 		}, false);
 
 		// PAUSE
 		audioElement.addEventListener('pause', function(e) {
 			var g = d3.select( '#name' + this.id.slice(5))
-			removePlayIcon(g)
 			shrinkNode(g)
 		}, false);
 
