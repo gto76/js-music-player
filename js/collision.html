@@ -27,10 +27,10 @@ var RADIUS = 20
 // This enables scrolling over the edge
 var NUMBER_OF_SECTORS = 2
 
-var NODE_GROWTH_RATE = 2
+// This should probably be a whole number, so that when node doesn't keep oscilating after reaching its final size
+var NODE_GROWTH_RATE = 1
 
 var TRIANGLE_SIZE_FACTOR = 0.72
-var TRIANGLE_TRANSITION = 500
 var TRIANGLE_COLOR = "black"
 var TRIANGLE_BORDER_COLOR = "white"
 var TRIANGLE_FILL_OPACITY = 0.48
@@ -108,8 +108,28 @@ nodes.forEach(function(d) {
 })
 
 function getDistance(node1, node2) {
-	var dx = node1.fociX - node2.fociX
-	var dy = node1.fociY - node2.fociY
+	var distance = getDistance(node1.fociX, node1.fociY, node2.fociX, node2.focyY)
+	// It needs to check if any distance to the node in
+	// anjecent sectors of the torus space is smaller then the
+	// one inside its own sector
+		/*
+	for (i = -1; i <= 1; i++) {
+		for (j = -1; j <= 1; j++) {
+			var x2 = node2.fociX + width*i
+			var y2 = node2.fociY + height*i
+			var distanceCandidate = getDistance(node1.fociX, node1.fociY, x2, y2)
+			if (distanceCandidate < distance) {
+				distance = distanceCandidate
+			}
+		}
+	}
+	*/
+	return distance
+}
+
+function getDistance(x1, y1, x2, y2) {
+	var dx = x1 - x2 
+	var dy = y1 - y2
 	return Math.sqrt(Math.pow(dx,2) + Math.pow(dy,2))
 }
 
@@ -299,7 +319,6 @@ function generateAudioElements() {
 			shrinkNode(g)
 			if (AUTOPLAY) {
 				alreadyPlayedTracks.push(this.id.slice(5))
-				console.log("alreadyPlayed "+alreadyPlayedTracks)
 				var nextSong = findClosestNode(g)
 				play(nextSong)
 			}
@@ -353,8 +372,6 @@ function findClosestNode(nodeIn) {
 		if (nodeIsNotTheSameOne && nodeIsClosestOneYet && songHasntBeenPlayedYet) {
 			closestNode = d
 			smallestDistance = distance
-			console.log("closestNode "+d)
-			console.log("smallestDistance "+distance)
 		}
 	})
 	return closestNode

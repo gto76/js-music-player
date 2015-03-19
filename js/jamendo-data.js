@@ -3,7 +3,6 @@ var songs = '{"songs": {\
 "a502":{"artist":"Brigata Klandestina Crew (Sardigna)","title":"Konflitto - Vranku Tu non sei Franco, sei un Porcu (2013)","key":"1","tempo":"78.705"},\
 "a503":{"artist":"DementialCore","title":"A.0.W.(Tria et Triaginta rmx)mp3","key":"8","tempo":"109.918"},\
 "a504":{"artist":"Escarnio","title":"Tambores de Guerra (Single - Side A)","key":"2","tempo":"112.22"},\
-"a505":{"artist":"Fhernando","title":"Can\'t Wait For Disco","key":"11","tempo":"0.0"},\
 "a506":{"artist":"Hare","title":"Far from here","key":"8","tempo":"135.984"},\
 "a507":{"artist":"Jason Brock","title":"When You Go Away","key":"2","tempo":"67.997"},\
 "a508":{"artist":"Legis","title":"Get ready","key":"6","tempo":"149.949"},\
@@ -12,12 +11,10 @@ var songs = '{"songs": {\
 "a511":{"artist":"PSA","title":"You\'re Not The One","key":"7","tempo":"116.251"},\
 "a512":{"artist":"Snakee","title":"Les temps changent","key":"7","tempo":"72.553"},\
 "a513":{"artist":"Tamara Laurel","title":"Sweet","key":"5","tempo":"179.306"},\
-"a514":{"artist":"Yome","title":"On descend tous d\'une guenon","key":"11","tempo":"0.0"},\
 "a515":{"artist":"Abdou Day","title":"Who are you ?","key":"9","tempo":"147.015"},\
 "a516":{"artist":"Akashic Records","title":"Optimistic","key":"5","tempo":"146.066"},\
 "a517":{"artist":"BFJazz","title":"Smile","key":"2","tempo":"95.985"},\
 "a518":{"artist":"DragoSalvaje","title":"Muevelo Mambo Hit Drago Salvaj","key":"1","tempo":"130.695"},\
-"a519":{"artist":"Eion Alea","title":"Eion Alea-Cathedral del stellas","key":"6","tempo":"0.0"},\
 "a520":{"artist":"Francisco Mura","title":"En tu ausencia","key":"11","tempo":"99.839"},\
 "a521":{"artist":"Holopsia","title":"A la Femme que j\'aime (my babylove\'s song)","key":"0","tempo":"130.402"},\
 "a522":{"artist":"Janela","title":"Agracejo","key":"11","tempo":"150.167"},\
