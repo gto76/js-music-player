@@ -136,17 +136,161 @@ function getDistanceA(x1, y1, x2, y2) {
 //##### SVG #####
 //###############
 
+// From pan limit example
+var PAN_LIMIT_X = width*NUMBER_OF_SECTORS
+var PAN_LIMIT_Y = height*NUMBER_OF_SECTORS
+var panExtent = {x: [-width*2/3,2*width*2/3], y:[height,height*2] };
+
+// From pan limit example
+var x = d3.scale.linear()
+    .domain([	panExtent.x[0] > (-width / 2) 	? panExtent.x[0] : (-width / 2),
+				panExtent.x[1] < (width / 2) 	? panExtent.x[1] : (width / 2)	])
+    .range([0, width*3]);
+	
+// From pan limit example
+var y = d3.scale.linear()
+    .domain([	panExtent.y[0] > (-height / 2)	? panExtent.y[0] : (-height / 2),
+				panExtent.y[1] < (height / 2)	? panExtent.y[1] : (height / 2)	])
+    .range([height, 0]);
+
+// From pan limit example
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+
+// From pan limit example
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+
+// From pan limit example
+var zoom = d3.behavior.zoom()
+    .x(x)
+    .y(y)
+    .scaleExtent([1, 8])
+    .on("zoom", zoomed);
+
 var svg = d3.select("#body").append("svg:svg")
     .attr("width", width)
     .attr("height", height)
   .append("g")
-    .call(d3.behavior.zoom().scaleExtent([1, 8]).on("zoom", zoomHandler))
+	.call(zoom)
+    // EX: .call(d3.behavior.zoom().scaleExtent([1, 8]).on("zoom", zoomHandler))
   .append("g");
 
 svg.append("rect")
     .attr("class", "overlay")
     .attr("width", width*NUMBER_OF_SECTORS)
     .attr("height", height*NUMBER_OF_SECTORS);
+
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+
+// From pan limit example
+function zoomed() {
+//OLD:
+	//svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+
+	//1
+	svg.attr("transform", "translate(" + panLimit() + ")scale(" + d3.event.scale + ")");
+
+	//2
+  //zoom.translate(d3.event.translate);
+  //zoom.scale(d3.event.scale)
+
+	//3
+  //zoom.translate(panLimit());
+					
+  svg.select(".x.axis").call(xAxis);
+  svg.select(".y.axis").call(yAxis);
+}
+
+
+function panLimit() {
+	/*	
+	include boolean to work out the panExtent and return to zoom.translate()
+	*/
+
+	var divisor = { h: height / ((y.domain()[1]-y.domain()[0])*zoom.scale()), 
+					w: width / ((x.domain()[1]-x.domain()[0])*zoom.scale()) }
+
+	var minX = -(x.domain()[0] - x.domain()[1]) * zoom.scale() + (panExtent.x[1] - (panExtent.x[1] - width/divisor.w)),
+		minY = -(((y.domain()[0] - y.domain()[1]) * zoom.scale()) + (panExtent.y[1] - (panExtent.y[1] - (height*(zoom.scale())/divisor.h))))*divisor.h,
+		maxX = -(((x.domain()[0] - x.domain()[1])) + (panExtent.x[1] - panExtent.x[0])) * divisor.w * zoom.scale(),
+		maxY = (((y.domain()[0] - y.domain()[1]) * zoom.scale()) + (panExtent.y[1] - panExtent.y[0])) * divisor.h*zoom.scale() 
+
+	console.log("panExtent.x[0] "+panExtent.x[0])
+	console.log("x.domain()[0] "+x.domain()[0])
+	console.log("x.domain()[1] "+x.domain()[1])
+	console.log("panExtent.x[1] "+panExtent.x[1])
+	//console.log("-----------")
+	//console.log("panExtent.y[0] "+panExtent.y[0])
+	//console.log("y.domain()[0] "+y.domain()[0])
+	//console.log("y.domain()[1] "+y.domain()[1])
+	//console.log("panExtent.y[1] "+panExtent.y[1])
+	console.log("minX "+minX)
+	//console.log("minY "+minY)
+	console.log("maxX "+maxX)
+	//console.log("maxY "+maxY)
+	console.log("width "+width)
+
+	/*
+	var	tx = x.domain()[0] < panExtent.x[0] ? 
+				-width : 
+				x.domain()[1] > panExtent.x[1] ? 
+					-20 : 
+					zoom.translate()[0]
+	*/
+
+	var tx = 0
+	if (x.domain()[0] < panExtent.x[0]) {
+		tx = -width  
+		x.domain()[0] = 500
+	} else {
+		if (x.domain()[1] > panExtent.x[1]) {
+			tx = -20  
+		} else {
+			tx = zoom.translate()[0]
+		}
+	}
+
+	var ty = zoom.translate()[1]
+
+	console.log("tx "+tx)
+	console.log("ty "+ty)
+	console.log("============")
+/*
+		ty = y.domain()[0]  < panExtent.y[0]? 
+				maxY : 
+				y.domain()[1] > panExtent.y[1] ? 
+					minY : 
+					zoom.translate()[1];
+*/
+/*
+	var	tx = x.domain()[0] < panExtent.x[0] ? 
+				maxX : 
+				x.domain()[1] > panExtent.x[1] ? 
+					minX : 
+					zoom.translate()[0],
+		ty = y.domain()[0]  < panExtent.y[0]? 
+				maxY : 
+				y.domain()[1] > panExtent.y[1] ? 
+					minY : 
+					zoom.translate()[1];
+*/
+	
+	return [tx,ty];
+}
+
+function zoomHandler() {
+	svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+}
 
 //#################
 //##### NODES #####
@@ -175,10 +319,6 @@ node.append("image")
 	.attr("clip-path", "url(#cut-off-bottom)")
 
 addPlayIcon(node)
-
-function zoomHandler() {
-	svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-}
 
 function enlargeNode(g) {
 	nodes.forEach(function(d) {
