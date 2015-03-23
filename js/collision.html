@@ -31,10 +31,10 @@ var NUMBER_OF_SECTORS = 2
 var NODE_GROWTH_RATE = 1
 
 var TRIANGLE_SIZE_FACTOR = 0.72
-var TRIANGLE_COLOR = "black"
-var TRIANGLE_BORDER_COLOR = "white"
-var TRIANGLE_FILL_OPACITY = 0.48
-var TRIANGLE_STROKE_OPACITY = 0.22
+var TRIANGLE_COLOR = "white"
+var BACKGROUND_COLOR = "black"
+var TRIANGLE_FILL_OPACITY = 0.9 //0.64
+var BACKGROUND_OPACITY = 0.22
 
 var songs = JSON.parse(songs);
 
@@ -218,13 +218,16 @@ function addPlayIcon(ggg) {
 			.y(function(d) { return d.y; })
 			.interpolate("linear");
 
+	var shade = ggg.append("circle")
+		.attr("cx", function(d) { return d.r; })
+		.attr("cy", function(d) { return d.r; })
+		.attr("r", function(d) { return d.r; })
+		.attr("fill", BACKGROUND_COLOR)
+   		.attr("fill-opacity","0.4")
+
 	var path = ggg.append("path")
 		.attr("d", lineFunction(triangle))
-		.attr("stroke", TRIANGLE_BORDER_COLOR)
-		.attr("stroke-opacity", "0.0")
-		.attr("stroke-width", "0.7")
    		.attr("fill-opacity","0.0")
-		.attr("fill", "true")
 		.attr("fill", TRIANGLE_COLOR)
 }
 
@@ -252,19 +255,22 @@ force.on("tick", function(e) {
 		}
 	});
 
-   var q = d3.geom.quadtree(nodes)
-   nodes.forEach(function(o) { q.visit(collide(o)) })
+	var q = d3.geom.quadtree(nodes)
+	nodes.forEach(function(o) { q.visit(collide(o)) })
 
-   svg.selectAll("g")
+	var ggg = svg.selectAll("g")
   		.attr("transform", function(d) { 
 			var relativeSize = d.r/RADIUS
 			var x = d.x - d.r
 			var y = d.y - d.r
 			return "translate("+x+","+y+")scale("+relativeSize+")" 
 		})
-		.select("path") // transparency of play icon depends on the radius
+   
+    ggg.selectAll("circle")
+			.attr("fill-opacity", function(d) { return ((d.r/RADIUS)-1) * BACKGROUND_OPACITY })
+
+	ggg.select("path") // transparency of play icon depends on the radius
 			.attr("fill-opacity", function(d) { return ((d.r/RADIUS)-1) * TRIANGLE_FILL_OPACITY })
-			.attr("stroke-opacity",function(d) { return ((d.r/RADIUS)-1) * TRIANGLE_STROKE_OPACITY }) 
 });
 
 function collide(node) {
