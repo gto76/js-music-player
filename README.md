@@ -15,7 +15,7 @@ Features
 * Because of the cyclic projection of the key and tempo, the scrolling could be made infinite (it is not yet implemented)
 * Autoplay based on distance
  
-How to run localy
+How to run locally
 -----------------
 ```bash
 git clone https://github.com/gto76/js-music-player
