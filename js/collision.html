@@ -3,6 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <script src="d3.v3.min.js"></script>
+<script src="jquery-2.1.3.js"></script>
 <script src="jamendo-data.js"></script>
 <style>
 .overlay {
@@ -307,8 +308,9 @@ function collide(node) {
 generateAudioElements()
 
 var AUTOPLAY = true
-var alreadyPlayedTracks = []
+var FADE_DURATION = 5000
 
+var alreadyPlayedTracks = []
 
 function generateAudioElements() {
 	var audioDiv = document.getElementById("audio")
@@ -331,6 +333,13 @@ function generateAudioElements() {
 
 		// PLAY
 		audioElement.addEventListener('play', function(e) {
+			$(this).prop('volume', 0.0);
+			console.log("duration "+ audioElement.duration)
+			$(this).animate({volume: 1.0}, FADE_DURATION);
+			var outer = $(this)
+			setTimeout(function(){
+				outer.animate({volume: 0.0}, FADE_DURATION);
+			}, audioElement.duration*1000 - FADE_DURATION);
 			var g = d3.select('#name' + this.id.slice(5))
 			enlargeNode(g)			
 		}, false);
