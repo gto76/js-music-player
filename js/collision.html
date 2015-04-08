@@ -16,6 +16,7 @@
 <body>
 
 <div id="audio"></div>
+
 <div id="body">
 
 
@@ -311,6 +312,7 @@ var AUTOPLAY = true
 var FADE_DURATION = 5000
 
 var alreadyPlayedTracks = []
+var lastTimeoutId = ""
 
 function generateAudioElements() {
 	var audioDiv = document.getElementById("audio")
@@ -324,28 +326,45 @@ function generateAudioElements() {
 		audioElement.addEventListener('ended', function(e) {
 			var g = d3.select('#name' + this.id.slice(5))
 			shrinkNode(g)
+			/*
 			if (AUTOPLAY) {
 				alreadyPlayedTracks.push(this.id.slice(5))
 				var nextSong = findClosestNode(g)
 				play(nextSong)
 			}
+			*/
 		}, false);
 
 		// PLAY
 		audioElement.addEventListener('play', function(e) {
-			$(this).prop('volume', 0.0);
-			console.log("duration "+ audioElement.duration)
+
+			$(this).prop('volume', 0.5);
 			$(this).animate({volume: 1.0}, FADE_DURATION);
+
+			var id = this.id.slice(5)
+			var timeoutDur = Math.round( $(this).prop("duration") * 1000 - FADE_DURATION )
 			var outer = $(this)
-			setTimeout(function(){
+			lastTimeoutId = setTimeout(function(){
 				outer.animate({volume: 0.0}, FADE_DURATION);
-			}, audioElement.duration*1000 - FADE_DURATION);
-			var g = d3.select('#name' + this.id.slice(5))
+				if (AUTOPLAY) {
+					alreadyPlayedTracks.push(id)
+					var g = d3.select('#name' + id)
+					var nextSong = findClosestNode(g)
+					play(nextSong)
+				}
+			}, timeoutDur);
+
+			var g = d3.select('#name' + id)
 			enlargeNode(g)			
+
+			console.log("duration "+ $(this).prop("duration"))
+			console.log("id "+ id)
+			console.log("timeoutDur "+timeoutDur)
 		}, false);
 
 		// PAUSE
 		audioElement.addEventListener('pause', function(e) {
+			//clearTimeout(lastTimeoutId)
 			var g = d3.select('#name' + this.id.slice(5))
 			shrinkNode(g)
 		}, false);
