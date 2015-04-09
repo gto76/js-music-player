@@ -34,7 +34,8 @@ var TRIANGLE_FILL_OPACITY = 0.9 //0.64
 var BACKGROUND_OPACITY = 0.22
 
 var AUTOPLAY = true
-var FADE_DURATION = 4000
+var FADE_DURATION = 7000
+var CROSSFADE_VOLUME = true
 //////////////////////////////////////
 
 var songs = JSON.parse(songs);
@@ -370,22 +371,14 @@ function play(nodesData){
 
 function startPlayback(audioEl) {
 	stopPlayback()
-	
-	// update state
 	var id = audioEl.id.slice(5)
 	played.push(id)
 	playing = audioEl
-
 	fadeIn(audioEl)
-	//audioEl.play()
-
-	//var timeBeforeFadeout = Math.round( $(this).prop("duration") * 1000 - FADE_DURATION )
-	var timeBeforeFadeout = Math.round( audioEl.duration * 1000 - FADE_DURATION )
-
-	console.log("timeBeforeFadeout "+timeBeforeFadeout)
 
 	// start next song at the beginning of fadeout
 	// or just clear state
+	var timeBeforeFadeout = Math.round( audioEl.duration * 1000 - FADE_DURATION )
 	timeout = setTimeout(function(){
 		var id = $(audioEl).attr('id').slice(5)
 		console.log("audioEl.id "+audioEl.id)
@@ -416,14 +409,18 @@ function stopPlayback() {
 }
 
 function fadeIn(audioEl) {
-	$(audioEl).prop('volume', 0.0)
-	$(audioEl).animate({volume: 1.0}, FADE_DURATION);
+	if (CROSSFADE_VOLUME) {
+		$(audioEl).prop('volume', 0.0)
+		$(audioEl).animate({volume: 1.0}, FADE_DURATION);
+	}
 	audioEl.play()
 }
 
 function fadeOut(audioEl) {
 	console.log("fadeOut, audioEl "+audioEl.id)
-	$(audioEl).animate({volume: 0.0}, FADE_DURATION);
+	if (CROSSFADE_VOLUME) {
+		$(audioEl).animate({volume: 0.0}, FADE_DURATION);
+	}
 	setTimeout(function() {
 		audioEl.pause()
 		audioEl.currentTime = 0
