@@ -12,16 +12,11 @@
 }
 </style>
 </head>
-
 <body>
-
-	<!-- <div id="audio"></div> -->
-
 <div id="body">
-
-
 <script type="text/javascript">
 
+//////////////////////////////////////
 var RADIUS = 20
 
 // Number of sectors in one dimension, actual number of sectors is the power of two.
@@ -37,6 +32,10 @@ var TRIANGLE_COLOR = "white"
 var BACKGROUND_COLOR = "black"
 var TRIANGLE_FILL_OPACITY = 0.9 //0.64
 var BACKGROUND_OPACITY = 0.22
+
+var AUTOPLAY = true
+var FADE_DURATION = 4000
+//////////////////////////////////////
 
 var songs = JSON.parse(songs);
 
@@ -308,11 +307,14 @@ function collide(node) {
 
 generateAudioElements()
 
-var AUTOPLAY = true
-var FADE_DURATION = 4000
+// already played tracks
+var played = []
 
-var alreadyPlayedTracks = []
-var lastTimeoutId = ""
+// id of a timeout function that was most recently created
+var timeout = ""
+
+// last track that started playing and is still playing
+var playing = ""
 
 function generateAudioElements() {
 	for (var id in songs.songs) {
@@ -352,13 +354,13 @@ function generateAudioElements() {
 			// start next song at the beginning of fadeout
 			var outerThis = $(this)
 			//var outerThis = this
-			lastTimeoutId = setTimeout(function(){
+			timeout = setTimeout(function(){
 				// not shure if needed:
 				//var id = outerThis.id.slice(5)
 				var id = outerThis.attr('id').slice(5)
 				outerThis.animate({volume: 0.0}, FADE_DURATION);
 				if (AUTOPLAY) {
-					alreadyPlayedTracks.push(id)
+					played.push(id)
 					var g = d3.select('#name' + id)
 					var nextSong = findClosestNode(g)
 					play(nextSong)
@@ -388,7 +390,6 @@ function generateAudioElements() {
 	}
 }
 
-var playingAudio = ""
 
 function play(nodesData){
 	console.log("Play function "+nodesData)
@@ -400,8 +401,8 @@ function play(nodesData){
 	if (audio.paused) {
 
 		// and another playing
-		if (playingAudio != "") {
-			var currentlyPlaying = playingAudio
+		if (playing != "") {
+			var currentlyPlaying = playing
 
 			//clearTimeout(lastTimeoutId)
 
@@ -427,13 +428,13 @@ function play(nodesData){
 
 		// play audio, add it to playing field
 		audio.play();
-		playingAudio = audio;
+		playing = audio;
 
 	// If not paused.
 	} else {
 		audio.pause();
 		audio.currentTime = 0;
-		playingAudio = ""
+		playing = ""
 	}
 }
 
@@ -446,7 +447,7 @@ function findClosestNode(nodeIn) {
 		var distance = d.distances[nodeInId]
 		var nodeIsNotTheSameOne = nodeInId != d.id
 		var nodeIsClosestOneYet = distance < smallestDistance
-		var songHasntBeenPlayedYet = !contains(alreadyPlayedTracks, d.id)
+		var songHasntBeenPlayedYet = !contains(played, d.id)
 		if (nodeIsNotTheSameOne && nodeIsClosestOneYet && songHasntBeenPlayedYet) {
 			closestNode = d
 			smallestDistance = distance
