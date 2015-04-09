@@ -15,7 +15,7 @@
 
 <body>
 
-<div id="audio"></div>
+	<!-- <div id="audio"></div> -->
 
 <div id="body">
 
@@ -309,22 +309,24 @@ function collide(node) {
 generateAudioElements()
 
 var AUTOPLAY = true
-var FADE_DURATION = 5000
+var FADE_DURATION = 4000
 
 var alreadyPlayedTracks = []
 var lastTimeoutId = ""
 
 function generateAudioElements() {
-	var audioDiv = document.getElementById("audio")
 	for (var id in songs.songs) {
 		var id = id.slice(1)
-		var audioElement = document.createElement("audio")
-		audioElement.setAttribute("id", "audio"+id);
+	  var track = new Audio()
+		var audioElement = document.createElement("source")
+		track.setAttribute("id", "audio"+id);
 		audioElement.setAttribute("src", "../JamendoDataset/"+id+".mp3");
 
 		// ENDED
-		audioElement.addEventListener('ended', function(e) {
-			var g = d3.select('#name' + this.id.slice(5))
+		track.addEventListener('ended', function(e) {
+			console.log("ENDED event "+this.id)
+			var id = this.id.slice(5)
+			var g = d3.select('#name' + id)
 			shrinkNode(g)
 			/*
 			if (AUTOPLAY) {
@@ -336,16 +338,25 @@ function generateAudioElements() {
 		}, false);
 
 		// PLAY
-		audioElement.addEventListener('play', function(e) {
-
-			$(this).prop('volume', 0.5);
+		track.addEventListener('play', function(e) {
+			console.log("PLAY event "+this.id)
+			var id = this.id.slice(5)
+	
+			// fade in
+			$(this).prop('volume', 0.0);
 			$(this).animate({volume: 1.0}, FADE_DURATION);
 
-			var id = this.id.slice(5)
+			// time before fadeout
 			var timeoutDur = Math.round( $(this).prop("duration") * 1000 - FADE_DURATION )
-			var outer = $(this)
+
+			// start next song at the beginning of fadeout
+			var outerThis = $(this)
+			//var outerThis = this
 			lastTimeoutId = setTimeout(function(){
-				outer.animate({volume: 0.0}, FADE_DURATION);
+				// not shure if needed:
+				//var id = outerThis.id.slice(5)
+				var id = outerThis.attr('id').slice(5)
+				outerThis.animate({volume: 0.0}, FADE_DURATION);
 				if (AUTOPLAY) {
 					alreadyPlayedTracks.push(id)
 					var g = d3.select('#name' + id)
@@ -363,33 +374,67 @@ function generateAudioElements() {
 		}, false);
 
 		// PAUSE
-		audioElement.addEventListener('pause', function(e) {
-			//clearTimeout(lastTimeoutId)
-			var g = d3.select('#name' + this.id.slice(5))
+		track.addEventListener('pause', function(e) {
+			console.log("PAUSE event "+this.id)
+			// TODO:
+			// clearTimeout(lastTimeoutId)
+			var id = this.id.slice(5)
+			var g = d3.select('#name' + id)
 			shrinkNode(g)
 		}, false);
 
-		audioDiv.appendChild(audioElement)
+		track.appendChild(audioElement)
+		document.body.appendChild(track)
 	}
 }
 
-var playingAudio=""
+var playingAudio = ""
 
 function play(nodesData){
+	console.log("Play function "+nodesData)
 	var audioFileId = nodesData.id
 	var node = d3.select( '#name' + audioFileId );	
-   	var audio = document.getElementById("audio"+audioFileId);
-   	if (audio.paused) {
+	var audio = document.getElementById("audio"+audioFileId);
+
+	// If paused
+	if (audio.paused) {
+
+		// and another playing
 		if (playingAudio != "") {
-			playingAudio.pause();
-			playingAudio.currentTime = 0;
+			var currentlyPlaying = playingAudio
+
+			//clearTimeout(lastTimeoutId)
+
+			// fade in!!! ??????
+			//$("audio"+audioFileId).animate({volume: 0.0}, FADE_DURATION);
+			// TODO check if fadeout already in progress
+			$(currentlyPlaying.id).animate({volume: 0.0}, FADE_DURATION);
+
+			//var id = this.id.slice(5)
+			//var g = d3.select('#name' + id)
+
+			// why shrink ??????
+			//shrinkNode(node)
+
+			// why pause???
+			setTimeout(function() {
+				currentlyPlaying.pause()
+			}, FADE_DURATION);
+
+			//playingAudio.pause();
+			//playingAudio.currentTime = 0;
 		}
-	   	audio.play();
-	   	playingAudio=audio;
-   	} else {
-	   	audio.pause();
-	   	audio.currentTime = 0;
-   	}
+
+		// play audio, add it to playing field
+		audio.play();
+		playingAudio = audio;
+
+	// If not paused.
+	} else {
+		audio.pause();
+		audio.currentTime = 0;
+		playingAudio = ""
+	}
 }
 
 function findClosestNode(nodeIn) {
