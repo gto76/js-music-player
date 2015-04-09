@@ -307,14 +307,15 @@ function collide(node) {
 
 generateAudioElements()
 
-// already played tracks
+// already played audio elements
 var played = []
 
-// id of a timeout function that was most recently created
-var timeout = ""
-
-// last track that started playing and is still playing
+// last audio element that started playing and is still playing
 var playing = ""
+
+// Id of a timeout function that was most recently created.
+// Used for crossfades at the end of songs.
+var timeout = ""
 
 function generateAudioElements() {
 	for (var id in songs.songs) {
@@ -330,56 +331,19 @@ function generateAudioElements() {
 			var id = this.id.slice(5)
 			var g = d3.select('#name' + id)
 			shrinkNode(g)
-			/*
-			if (AUTOPLAY) {
-				alreadyPlayedTracks.push(this.id.slice(5))
-				var nextSong = findClosestNode(g)
-				play(nextSong)
-			}
-			*/
 		}, false);
 
 		// PLAY
 		track.addEventListener('play', function(e) {
 			console.log("PLAY event "+this.id)
 			var id = this.id.slice(5)
-	
-			// fade in
-			$(this).prop('volume', 0.0);
-			$(this).animate({volume: 1.0}, FADE_DURATION);
-
-			// time before fadeout
-			var timeoutDur = Math.round( $(this).prop("duration") * 1000 - FADE_DURATION )
-
-			// start next song at the beginning of fadeout
-			var outerThis = $(this)
-			//var outerThis = this
-			timeout = setTimeout(function(){
-				// not shure if needed:
-				//var id = outerThis.id.slice(5)
-				var id = outerThis.attr('id').slice(5)
-				outerThis.animate({volume: 0.0}, FADE_DURATION);
-				if (AUTOPLAY) {
-					played.push(id)
-					var g = d3.select('#name' + id)
-					var nextSong = findClosestNode(g)
-					play(nextSong)
-				}
-			}, timeoutDur);
-
 			var g = d3.select('#name' + id)
 			enlargeNode(g)			
-
-			console.log("duration "+ $(this).prop("duration"))
-			console.log("id "+ id)
-			console.log("timeoutDur "+timeoutDur)
 		}, false);
 
 		// PAUSE
 		track.addEventListener('pause', function(e) {
 			console.log("PAUSE event "+this.id)
-			// TODO:
-			// clearTimeout(lastTimeoutId)
 			var id = this.id.slice(5)
 			var g = d3.select('#name' + id)
 			shrinkNode(g)
@@ -390,52 +354,80 @@ function generateAudioElements() {
 	}
 }
 
-
 function play(nodesData){
-	console.log("Play function "+nodesData)
 	var audioFileId = nodesData.id
 	var node = d3.select( '#name' + audioFileId );	
-	var audio = document.getElementById("audio"+audioFileId);
+	var audioEl = document.getElementById("audio"+audioFileId);
 
-	// If paused
-	if (audio.paused) {
+	console.log("play function "+audioEl.id)
 
-		// and another playing
-		if (playing != "") {
-			var currentlyPlaying = playing
-
-			//clearTimeout(lastTimeoutId)
-
-			// fade in!!! ??????
-			//$("audio"+audioFileId).animate({volume: 0.0}, FADE_DURATION);
-			// TODO check if fadeout already in progress
-			$(currentlyPlaying.id).animate({volume: 0.0}, FADE_DURATION);
-
-			//var id = this.id.slice(5)
-			//var g = d3.select('#name' + id)
-
-			// why shrink ??????
-			//shrinkNode(node)
-
-			// why pause???
-			setTimeout(function() {
-				currentlyPlaying.pause()
-			}, FADE_DURATION);
-
-			//playingAudio.pause();
-			//playingAudio.currentTime = 0;
-		}
-
-		// play audio, add it to playing field
-		audio.play();
-		playing = audio;
-
-	// If not paused.
+	if (audioEl.paused) {
+		startPlayback(audioEl)
 	} else {
-		audio.pause();
-		audio.currentTime = 0;
-		playing = ""
+		stopPlayback()
 	}
+}
+
+function startPlayback(audioEl) {
+	stopPlayback()
+	
+	// update state
+	var id = audioEl.id.slice(5)
+	played.push(id)
+	playing = audioEl
+
+	fadeIn(audioEl)
+	//audioEl.play()
+
+	//var timeBeforeFadeout = Math.round( $(this).prop("duration") * 1000 - FADE_DURATION )
+	var timeBeforeFadeout = Math.round( audioEl.duration * 1000 - FADE_DURATION )
+
+	console.log("timeBeforeFadeout "+timeBeforeFadeout)
+
+	// start next song at the beginning of fadeout
+	// or just clear state
+	timeout = setTimeout(function(){
+		var id = $(audioEl).attr('id').slice(5)
+		console.log("audioEl.id "+audioEl.id)
+		if (AUTOPLAY) {
+			fadeOut(audioEl)
+			playNextSong(id)
+		} else {
+			playing = ""
+			timeout = ""
+		}
+	}, timeBeforeFadeout);
+}
+
+function playNextSong(id) {
+	var g = d3.select('#name' + id)
+	var nextSong = findClosestNode(g)
+	play(nextSong)
+}
+
+function stopPlayback() {
+	if (playing == "") {
+		return
+	}
+	fadeOut(playing)
+	playing = ""
+	clearTimeout(timeout)
+	timeout = ""
+}
+
+function fadeIn(audioEl) {
+	$(audioEl).prop('volume', 0.0)
+	$(audioEl).animate({volume: 1.0}, FADE_DURATION);
+	audioEl.play()
+}
+
+function fadeOut(audioEl) {
+	console.log("fadeOut, audioEl "+audioEl.id)
+	$(audioEl).animate({volume: 0.0}, FADE_DURATION);
+	setTimeout(function() {
+		audioEl.pause()
+		audioEl.currentTime = 0
+	}, FADE_DURATION);
 }
 
 function findClosestNode(nodeIn) {
