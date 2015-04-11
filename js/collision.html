@@ -18,6 +18,7 @@
 
 //////////////////////////////////////
 var RADIUS = 20
+var PLAYING_RADIUS_FACTOR = 2.5
 
 // Number of sectors in one dimension, actual number of sectors is the power of two.
 // Each sector contains a copy of all the nodes.
@@ -34,7 +35,7 @@ var TRIANGLE_FILL_OPACITY = 0.9 //0.64
 var BACKGROUND_OPACITY = 0.22
 
 var AUTOPLAY = true
-var FADE_DURATION = 7000
+var FADE_DURATION = 2000
 var CROSSFADE_VOLUME = true
 //////////////////////////////////////
 
@@ -54,9 +55,9 @@ var height = w.innerHeight|| e.clientHeight|| g.clientHeight;
 var numOfSongs = Object.keys(songs.songs).length
 
 // Each node has 4 bubles, each in one sector,
-var nodes = d3.range(numOfSongs*NUMBER_OF_SECTORS*NUMBER_OF_SECTORS).map(function() { return {r: RADIUS}; })
+var data = d3.range(numOfSongs*NUMBER_OF_SECTORS*NUMBER_OF_SECTORS).map(function() { return {r: RADIUS}; })
 	
-nodes.forEach(function(d, i) { 
+data.forEach(function(d, i) { 
 	// SET id
 	var keys = Object.keys(songs.songs)
 	var songIndex = keys[i%numOfSongs]
@@ -77,7 +78,7 @@ nodes.forEach(function(d, i) {
 	d.y = d.fociY
 
 	// SET R
-	d.fociR = d.r
+	//d.fociR = d.r
 })
 
 function getFociX(tempo) {
@@ -101,9 +102,9 @@ function getFociY(key) {
 }
 
 // Add to every node the map of the distances to other nodes
-nodes.forEach(function(d) { 
+data.forEach(function(d) { 
 	d.distances = {}
-	nodes.forEach(function(e) {
+	data.forEach(function(e) {
 		d.distances[e.id] = getDistance(d, e)
 	})
 })
@@ -154,13 +155,13 @@ svg.append("rect")
 //##### NODES #####
 //#################
 
-var node = svg.selectAll("g")
-	.data(nodes)
+var nodes = svg.selectAll("g")
+	.data(data)
   	.enter().append("g")
 	.on("click", function(d) { play(d) })
 	.attr('id', function(d) { return 'name' + d.id })
 
-var clipPath = node.append("clipPath")
+var clipPath = nodes.append("clipPath")
 	.attr("id", "cut-off-bottom")
 
 clipPath.append("circle")
@@ -168,7 +169,7 @@ clipPath.append("circle")
     .attr("cy", function(d) { return d.r; })
     .attr("r", function(d) { return d.r; })
 
-node.append("image")
+nodes.append("image")
 	.attr("x", "0")
 	.attr("y", "0")
 	.attr("xlink:href", function(d) { return "../JamendoDataset/"+ d.id + ".jpg" })
@@ -176,31 +177,31 @@ node.append("image")
     .attr("width", function(d) { return (d.r) * 2; })
 	.attr("clip-path", "url(#cut-off-bottom)")
 
-addPlayIcon(node)
+addPlayIcon(nodes)
 
 function zoomHandler() {
 	svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 }
 
+/*
 function enlargeNode(g) {
-	nodes.forEach(function(d) {
-		var gId = g.attr("id").slice(4)
-		if (d.id == gId) {
-			d.fociR = RADIUS * 2
-		}
-	})
-	force.start();
+	setRadius(g, RADIUS * 2)
 }
 
 function shrinkNode(g) {
-	nodes.forEach(function(d) {
-		var gId = g.attr("id").slice(4)
+	setRadius(g, RADIUS)
+}
+
+function setRadius(g, radius) {
+	var gId = g.attr("id").slice(4)
+	data.forEach(function(d) {
 		if (d.id == gId) {
-			d.fociR = RADIUS
+			d.fociR = radius
 		}
 	})
 	force.start();
 }
+*/
 
 function addPlayIcon(ggg) {
 	var s = TRIANGLE_SIZE_FACTOR
@@ -239,7 +240,7 @@ function addPlayIcon(ggg) {
 
 var force = d3.layout.force()
     .gravity(0)
-    .nodes(nodes)
+    .nodes(data)
     .size([width, height])
 	.links([])
 
@@ -247,18 +248,22 @@ force.start();
 
 force.on("tick", function(e) {
 	var k = .1 * e.alpha;
-    nodes.forEach(function(o) {
+  data.forEach(function(o) {
 		o.y += (o.fociY - o.y) * k
 		o.x += (o.fociX - o.x) * k
+
+		// remove node growth rate
+		/*
 		if (o.r < o.fociR) {
 			o.r = o.r + NODE_GROWTH_RATE
 		} else if (o.r > o.fociR) {
 			o.r = o.r - NODE_GROWTH_RATE
 		}
+		*/
 	});
 
-	var q = d3.geom.quadtree(nodes)
-	nodes.forEach(function(o) { q.visit(collide(o)) })
+	var q = d3.geom.quadtree(data)
+	data.forEach(function(o) { q.visit(collide(o)) })
 
 	var ggg = svg.selectAll("g")
   		.attr("transform", function(d) { 
@@ -268,7 +273,7 @@ force.on("tick", function(e) {
 			return "translate("+x+","+y+")scale("+relativeSize+")" 
 		})
    
-    ggg.selectAll("circle")
+  ggg.selectAll("circle")
 			.attr("fill-opacity", function(d) { return ((d.r/RADIUS)-1) * BACKGROUND_OPACITY })
 
 	ggg.select("path") // transparency of play icon depends on the radius
@@ -329,25 +334,19 @@ function generateAudioElements() {
 		// ENDED
 		track.addEventListener('ended', function(e) {
 			console.log("ENDED event "+this.id)
-			var id = this.id.slice(5)
-			var g = d3.select('#name' + id)
-			shrinkNode(g)
+			//shrinkNode(this, FADE_DURATION)
 		}, false);
 
 		// PLAY
 		track.addEventListener('play', function(e) {
 			console.log("PLAY event "+this.id)
-			var id = this.id.slice(5)
-			var g = d3.select('#name' + id)
-			enlargeNode(g)			
+			//enlargeNode(this, FADE_DURATION)
 		}, false);
 
 		// PAUSE
 		track.addEventListener('pause', function(e) {
 			console.log("PAUSE event "+this.id)
-			var id = this.id.slice(5)
-			var g = d3.select('#name' + id)
-			shrinkNode(g)
+			//shrinkNode(this, FADE_DURATION)
 		}, false);
 
 		track.appendChild(audioElement)
@@ -414,6 +413,7 @@ function fadeIn(audioEl) {
 		$(audioEl).animate({volume: 1.0}, FADE_DURATION);
 	}
 	audioEl.play()
+	enlargeNode(audioEl, FADE_DURATION)
 }
 
 function fadeOut(audioEl) {
@@ -425,13 +425,14 @@ function fadeOut(audioEl) {
 		audioEl.pause()
 		audioEl.currentTime = 0
 	}, FADE_DURATION);
+	shrinkNode(audioEl, FADE_DURATION)
 }
 
 function findClosestNode(nodeIn) {
 	var closestNode = null
 	var smallestDistance = 99999
 
-	nodes.forEach(function(d) {
+	data.forEach(function(d) {
 		var nodeInId = nodeIn.attr("id").slice(4)
 		var distance = d.distances[nodeInId]
 		var nodeIsNotTheSameOne = nodeInId != d.id
@@ -443,6 +444,25 @@ function findClosestNode(nodeIn) {
 		}
 	})
 	return closestNode
+}
+
+function shrinkNode(audioEl, duration) {
+	changeNodesRadius(audioEl, RADIUS, duration)
+}
+
+function enlargeNode(audioEl, duration) {
+	changeNodesRadius(audioEl, RADIUS*PLAYING_RADIUS_FACTOR, duration)
+}
+
+function changeNodesRadius(audioEl, radius, duration) {
+	var id = audioEl.id.slice(5)
+	console.log("id "+id)
+	console.log("radius "+radius)
+	console.log("duration "+duration)
+	var g = d3.select('#name' + id)
+	var d = getNodesData(g)
+	$(d).animate({r: radius}, duration);
+	force.start();
 }
 
 //################
@@ -459,6 +479,15 @@ function contains(a, obj) {
     return false;
 }
 
+function getNodesData(g) {
+	var gId = g.attr("id").slice(4)
+	for (var i = 0; i < data.length; i++) {
+		var d = data[i]
+		if (d.id == gId) {
+			return d
+		}
+	}
+}
 
 </script>
 </body></html>
