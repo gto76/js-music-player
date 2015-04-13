@@ -17,6 +17,8 @@
 <script type="text/javascript">
 
 //////////////////////////////////////
+var DEBUG = true
+
 var RADIUS = 20
 var PLAYING_RADIUS_FACTOR = 2.5
 
@@ -25,7 +27,8 @@ var PLAYING_RADIUS_FACTOR = 2.5
 // This enables scrolling over the edge
 var NUMBER_OF_SECTORS = 2
 
-// This should probably be a whole number, so that node size doesn't keep oscilating after reaching its final size
+// This should probably be a whole number, so that node size doesn't keep oscilating 
+// after reaching its final size
 var NODE_GROWTH_RATE = 1
 
 var TRIANGLE_SIZE_FACTOR = 0.72
@@ -35,8 +38,11 @@ var TRIANGLE_FILL_OPACITY = 0.9 //0.64
 var BACKGROUND_OPACITY = 0.22
 
 var AUTOPLAY = true
-var FADE_DURATION = 2000
+var CROSSFADE_DURATION = 3000
 var CROSSFADE_VOLUME = true
+var FADEOUT_DURATION = 1000
+var FADEIN_DURATION = 0
+var RADIUS_TRANSITION_MIN = 1000
 //////////////////////////////////////
 
 var songs = JSON.parse(songs);
@@ -55,7 +61,10 @@ var height = w.innerHeight|| e.clientHeight|| g.clientHeight;
 var numOfSongs = Object.keys(songs.songs).length
 
 // Each node has 4 bubles, each in one sector,
-var data = d3.range(numOfSongs*NUMBER_OF_SECTORS*NUMBER_OF_SECTORS).map(function() { return {r: RADIUS}; })
+var data = d3.range(numOfSongs*NUMBER_OF_SECTORS*NUMBER_OF_SECTORS)
+	.map(function() { 
+		return {r: RADIUS}; 
+	})
 	
 data.forEach(function(d, i) { 
 	// SET id
@@ -76,9 +85,6 @@ data.forEach(function(d, i) {
 	var sectorY = Math.floor(sectorIndex/NUMBER_OF_SECTORS)
 	d.fociY = getFociY(key) + sectorY * height
 	d.y = d.fociY
-
-	// SET R
-	//d.fociR = d.r
 })
 
 function getFociX(tempo) {
@@ -183,26 +189,6 @@ function zoomHandler() {
 	svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 }
 
-/*
-function enlargeNode(g) {
-	setRadius(g, RADIUS * 2)
-}
-
-function shrinkNode(g) {
-	setRadius(g, RADIUS)
-}
-
-function setRadius(g, radius) {
-	var gId = g.attr("id").slice(4)
-	data.forEach(function(d) {
-		if (d.id == gId) {
-			d.fociR = radius
-		}
-	})
-	force.start();
-}
-*/
-
 function addPlayIcon(ggg) {
 	var s = TRIANGLE_SIZE_FACTOR
 	var r = RADIUS
@@ -234,6 +220,48 @@ function addPlayIcon(ggg) {
 		.attr("fill", TRIANGLE_COLOR)
 }
 
+function shrinkNode(audioEl, duration) {
+	changeNodesRadius(audioEl, RADIUS, duration)
+}
+
+function enlargeNode(audioEl, duration) {
+	changeNodesRadius(audioEl, RADIUS*PLAYING_RADIUS_FACTOR, duration)
+}
+
+function changeNodesRadius(audioEl, radius, duration) {
+	if (DEBUG) {
+		console.log("id "+audioEl.id)
+		console.log("radius "+radius)
+		console.log("duration "+duration)
+	}
+	if (duration < RADIUS_TRANSITION_MIN) {
+		duration = RADIUS_TRANSITION_MIN
+	}
+	var g = getNode(audioEl)
+	var d = getNodesData(g)
+	$(d).stop(true, false)
+	$(d).animate({r: radius}, duration);
+	force.start();
+}
+
+function findClosestNode(nodeIn) {
+	var closestNode = null
+	var smallestDistance = 99999
+
+	data.forEach(function(d) {
+		var nodeInId = nodeIn.attr("id").slice(4)
+		var distance = d.distances[nodeInId]
+		var nodeIsNotTheSameOne = nodeInId != d.id
+		var nodeIsClosestOneYet = distance < smallestDistance
+		var songHasntBeenPlayedYet = !contains(played, d.id)
+		if (nodeIsNotTheSameOne && nodeIsClosestOneYet && songHasntBeenPlayedYet) {
+			closestNode = d
+			smallestDistance = distance
+		}
+	})
+	return closestNode
+}
+
 //###################
 //##### ON TICK #####
 //###################
@@ -251,15 +279,6 @@ force.on("tick", function(e) {
   data.forEach(function(o) {
 		o.y += (o.fociY - o.y) * k
 		o.x += (o.fociX - o.x) * k
-
-		// remove node growth rate
-		/*
-		if (o.r < o.fociR) {
-			o.r = o.r + NODE_GROWTH_RATE
-		} else if (o.r > o.fociR) {
-			o.r = o.r - NODE_GROWTH_RATE
-		}
-		*/
 	});
 
 	var q = d3.geom.quadtree(data)
@@ -331,22 +350,16 @@ function generateAudioElements() {
 		track.setAttribute("id", "audio"+id);
 		audioElement.setAttribute("src", "../JamendoDataset/"+id+".mp3");
 
-		// ENDED
 		track.addEventListener('ended', function(e) {
-			console.log("ENDED event "+this.id)
-			//shrinkNode(this, FADE_DURATION)
+			if (DEBUG) console.log("ENDED event "+this.id)
 		}, false);
 
-		// PLAY
 		track.addEventListener('play', function(e) {
-			console.log("PLAY event "+this.id)
-			//enlargeNode(this, FADE_DURATION)
+			if (DEBUG) console.log("PLAY event "+this.id)
 		}, false);
 
-		// PAUSE
 		track.addEventListener('pause', function(e) {
-			console.log("PAUSE event "+this.id)
-			//shrinkNode(this, FADE_DURATION)
+			if (DEBUG) console.log("PAUSE event "+this.id)
 		}, false);
 
 		track.appendChild(audioElement)
@@ -355,19 +368,119 @@ function generateAudioElements() {
 }
 
 function play(nodesData){
-	var audioFileId = nodesData.id
-	var node = d3.select( '#name' + audioFileId );	
-	var audioEl = document.getElementById("audio"+audioFileId);
-
-	console.log("play function "+audioEl.id)
+	var audioEl = getAudioEl(nodesData)
 
 	if (audioEl.paused) {
-		startPlayback(audioEl)
+		if (playing == "") {
+			if (DEBUG) console.log("### start playback "+audioEl.id)
+			startPlayback(audioEl)
+		} else {
+			if (DEBUG) console.log("### skip to "+audioEl.id)
+			skipTo(audioEl)
+		}
 	} else {
-		stopPlayback()
+		if (DEBUG) console.log("### stop playback "+audioEl.id)
+		stopPlayback(audioEl)
 	}
 }
 
+function startPlayback(audioEl) {
+	// update state
+	var id = audioEl.id.slice(5)
+	played.push(id)
+	playing = audioEl
+	
+	// fade in
+	fadeIn(audioEl, FADEIN_DURATION)
+
+	// set timeout to start next song at the beginning of fadeout if autoplay is on
+	cueNextSong(audioEl)
+}
+
+function skipTo(audioEl) {
+	// update state
+	clearTimeout(timeout)
+	timeout = ""
+	exPlaying = playing
+	playing = audioEl
+
+	// fade out/in
+	fadeOut(exPlaying, CROSSFADE_DURATION)
+	fadeIn(audioEl, CROSSFADE_DURATION)
+
+	// set timeout to start next song at the beginning of fadeout if autoplay is on
+	cueNextSong(audioEl)
+}
+
+function stopPlayback(audioEl) {
+	// update state
+	clearTimeout(timeout)
+	timeout = ""
+	playing = ""
+
+	// fade out
+	fadeOut(audioEl, FADEOUT_DURATION)
+	if (playing != "") { 
+		fadeOut(playing, FADEOUT_DURATION)
+	}
+}
+
+function cueNextSong(audioEl) {
+	var timeBeforeFadeout = Math.round( audioEl.duration * 1000 - CROSSFADE_DURATION )
+	timeout = setTimeout(function(){
+		var id = $(audioEl).attr('id').slice(5)
+		if (DEBUG) console.log("audioEl.id "+audioEl.id)
+		if (AUTOPLAY) {
+			fadeOut(audioEl, CROSSFADE_DURATION)
+			playNextSong(id)
+		} else {
+			playing = ""
+			timeout = ""
+		}
+	}, timeBeforeFadeout);
+}
+
+function playNextSong(id) {
+	var g = d3.select('#name' + id)
+	var nextSong = findClosestNode(g)
+	var audioEl = getAudioEl(nextSong)
+
+	// update state
+	playing = audioEl
+	var id = audioEl.id.slice(5)
+	played.push(id)
+
+	// fade in
+	fadeIn(audioEl, CROSSFADE_DURATION)
+
+	// set timeout to start next song at the beginning of fadeout if autoplay is on
+	cueNextSong(audioEl)
+}
+
+function fadeIn(audioEl, duration) {
+	if (CROSSFADE_VOLUME) {
+		$(audioEl).stop(true, false)
+		$(audioEl).prop('volume', 0.0)
+		$(audioEl).animate({volume: 1.0}, duration);
+	}
+	audioEl.play()
+	enlargeNode(audioEl, duration)
+}
+
+function fadeOut(audioEl, duration) {
+	if (DEBUG) console.log("fadeOut, audioEl "+audioEl.id)
+	if (CROSSFADE_VOLUME) {
+		$(audioEl).stop(true, false)
+		$(audioEl).animate({volume: 0.0}, duration);
+	}
+	setTimeout(function() {
+		audioEl.pause()
+		audioEl.currentTime = 0
+	}, duration);
+	shrinkNode(audioEl, duration)
+}
+
+/*
 function startPlayback(audioEl) {
 	stopPlayback()
 	var id = audioEl.id.slice(5)
@@ -390,13 +503,9 @@ function startPlayback(audioEl) {
 		}
 	}, timeBeforeFadeout);
 }
+*/
 
-function playNextSong(id) {
-	var g = d3.select('#name' + id)
-	var nextSong = findClosestNode(g)
-	play(nextSong)
-}
-
+/*
 function stopPlayback() {
 	if (playing == "") {
 		return
@@ -406,64 +515,7 @@ function stopPlayback() {
 	clearTimeout(timeout)
 	timeout = ""
 }
-
-function fadeIn(audioEl) {
-	if (CROSSFADE_VOLUME) {
-		$(audioEl).prop('volume', 0.0)
-		$(audioEl).animate({volume: 1.0}, FADE_DURATION);
-	}
-	audioEl.play()
-	enlargeNode(audioEl, FADE_DURATION)
-}
-
-function fadeOut(audioEl) {
-	console.log("fadeOut, audioEl "+audioEl.id)
-	if (CROSSFADE_VOLUME) {
-		$(audioEl).animate({volume: 0.0}, FADE_DURATION);
-	}
-	setTimeout(function() {
-		audioEl.pause()
-		audioEl.currentTime = 0
-	}, FADE_DURATION);
-	shrinkNode(audioEl, FADE_DURATION)
-}
-
-function findClosestNode(nodeIn) {
-	var closestNode = null
-	var smallestDistance = 99999
-
-	data.forEach(function(d) {
-		var nodeInId = nodeIn.attr("id").slice(4)
-		var distance = d.distances[nodeInId]
-		var nodeIsNotTheSameOne = nodeInId != d.id
-		var nodeIsClosestOneYet = distance < smallestDistance
-		var songHasntBeenPlayedYet = !contains(played, d.id)
-		if (nodeIsNotTheSameOne && nodeIsClosestOneYet && songHasntBeenPlayedYet) {
-			closestNode = d
-			smallestDistance = distance
-		}
-	})
-	return closestNode
-}
-
-function shrinkNode(audioEl, duration) {
-	changeNodesRadius(audioEl, RADIUS, duration)
-}
-
-function enlargeNode(audioEl, duration) {
-	changeNodesRadius(audioEl, RADIUS*PLAYING_RADIUS_FACTOR, duration)
-}
-
-function changeNodesRadius(audioEl, radius, duration) {
-	var id = audioEl.id.slice(5)
-	console.log("id "+id)
-	console.log("radius "+radius)
-	console.log("duration "+duration)
-	var g = d3.select('#name' + id)
-	var d = getNodesData(g)
-	$(d).animate({r: radius}, duration);
-	force.start();
-}
+*/
 
 //################
 //##### UTIL #####
@@ -487,6 +539,17 @@ function getNodesData(g) {
 			return d
 		}
 	}
+}
+
+function getNode(audioEl) {
+	var id = audioEl.id.slice(5)
+	return d3.select('#name' + id)
+}
+
+function getAudioEl(nodesData){
+	var audioFileId = nodesData.id
+	var node = d3.select( '#name' + audioFileId );	
+	return document.getElementById("audio"+audioFileId);
 }
 
 </script>
