@@ -230,9 +230,9 @@ function enlargeNode(audioEl, duration) {
 
 function changeNodesRadius(audioEl, radius, duration) {
 	if (DEBUG) {
-		console.log("id "+audioEl.id)
-		console.log("radius "+radius)
-		console.log("duration "+duration)
+		//console.log("id "+audioEl.id)
+		//console.log("radius "+radius)
+		//console.log("duration "+duration)
 	}
 	if (duration < RADIUS_TRANSITION_MIN) {
 		duration = RADIUS_TRANSITION_MIN
@@ -416,12 +416,13 @@ function stopPlayback(audioEl) {
 	// update state
 	clearTimeout(timeout)
 	timeout = ""
+	exPlaying = playing
 	playing = ""
 
 	// fade out
 	fadeOut(audioEl, FADEOUT_DURATION)
-	if (playing != "") { 
-		fadeOut(playing, FADEOUT_DURATION)
+	if (exPlaying != "") { 
+		fadeOut(exPlaying, FADEOUT_DURATION)
 	}
 }
 
