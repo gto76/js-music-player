@@ -263,9 +263,16 @@ function changeNodesRadius(audioEl, radius, duration) {
 		duration = RADIUS_TRANSITION_MIN
 	}
 	var g = getNode(audioEl)
-	var d = getNodesData(g)
-	$(d).stop(true, false)
-	$(d).animate({r: radius}, duration);
+	//var d = getNodesData(g)
+	var gId = g.attr("id").slice(4)
+
+	data.forEach(function(d) {
+		if (d.id == gId) {
+			$(d).stop(true, false)
+			$(d).animate({r: radius}, duration);
+		}
+	})
+
 	force.start();
 }
 
@@ -480,13 +487,7 @@ function cueNextSong(audioEl) {
 }
 
 function playNextSong(id) {
-	var g = d3.select('#name' + id)
-	if (!shuffle) {
-		var nextSong = findClosestNode(g)
-	} else {
-		var nextSong = getRandomNode()
-	}
-	var audioEl = getAudioEl(nextSong)
+	var audioEl = getNextSong(id)
 
 	// update state
 	playing = audioEl
@@ -498,6 +499,16 @@ function playNextSong(id) {
 
 	// set timeout to start next song at the beginning of fadeout if autoplay is on
 	cueNextSong(audioEl)
+}
+
+function getNextSong(id) {
+	var g = d3.select('#name' + id)
+	if (shuffle) {
+		var nextSong = getRandomNode()
+	} else {
+		var nextSong = findClosestNode(g)
+	}
+	return getAudioEl(nextSong)
 }
 
 function fadeIn(audioEl, duration) {
@@ -569,15 +580,18 @@ function contains(a, obj) {
     return false;
 }
 
+/* not needed
 function getNodesData(g) {
 	var gId = g.attr("id").slice(4)
 	for (var i = 0; i < data.length; i++) {
 		var d = data[i]
 		if (d.id == gId) {
+			ddd.push(d)
 			return d
 		}
 	}
 }
+*/
 
 function getNode(audioEl) {
 	var id = audioEl.id.slice(5)
