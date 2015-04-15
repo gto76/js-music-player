@@ -26,9 +26,7 @@
 .slider {
   display: inline-block;
   vertical-align: middle;
-  position: absolute;
-  top: 30px;
-  left: 230px;
+  position: relative;
 }
 .slider.slider-horizontal {
   width: 210px;
