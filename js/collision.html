@@ -3,12 +3,12 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-	<script src="lib/d3.v3.min.js"></script>
 	<script src="lib/jquery-2.1.3.js"></script>
+	<script src="lib/d3.v3.min.js"></script>
 	<script src="lib/bootstrap.min.js"></script>
 	<link rel="stylesheet" href="lib/bootstrap.min.css">
-	<link rel="stylesheet" href="lib/bootstrap-slider.css">
 	<script src="lib/bootstrap-slider.js"></script>
+	<link rel="stylesheet" href="lib/bootstrap-slider.css">
 
 	<script src="data/jamendo-data.js"></script>
 
@@ -59,6 +59,7 @@ var TRIANGLE_COLOR = "white"
 var BACKGROUND_COLOR = "black"
 var TRIANGLE_FILL_OPACITY = 0.9 
 var BACKGROUND_OPACITY = 0.22
+var OPACITY_FADE_TIME = 300
 
 var AUTOPLAY = true
 var CROSSFADE_DURATION = 3000
@@ -414,10 +415,8 @@ function generateAudioElements() {
 	}
 }
 
-var OPACITY_FADE_TIME = 200
-
 function showPlayIcon(id) {
-	setPlayIconOpacity(id, 1.0)
+	setPlayIconOpacity(id, TRIANGLE_FILL_OPACITY)
 }
 
 function hidePlayIcon(id) {
@@ -426,7 +425,10 @@ function hidePlayIcon(id) {
 
 function setPlayIconOpacity(id, opacity) {
 	var g = d3.select('#name' + id)
-  g.select("path").transition().attr("fill-opacity", opacity)
+  g.select("path")
+		.transition()
+		.duration(OPACITY_FADE_TIME)
+		.attr("fill-opacity", opacity)
 }
 
 function play(nodesData){
