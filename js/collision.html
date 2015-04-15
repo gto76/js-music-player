@@ -6,10 +6,9 @@
 	<script src="lib/d3.v3.min.js"></script>
 	<script src="lib/jquery-2.1.3.js"></script>
 	<script src="lib/bootstrap.min.js"></script>
-	<script src="lib/bootstrap-slider.js"></script>
-
 	<link rel="stylesheet" href="lib/bootstrap.min.css">
 	<link rel="stylesheet" href="lib/bootstrap-slider.css">
+	<script src="lib/bootstrap-slider.js"></script>
 
 	<script src="data/jamendo-data.js"></script>
 
@@ -205,8 +204,8 @@ nodes.append("image")
 	.attr("x", "0")
 	.attr("y", "0")
 	.attr("xlink:href", function(d) { return "../JamendoDataset/"+ d.id + ".jpg" })
-    .attr("height", function(d) { return (d.r) * 2; })
-    .attr("width", function(d) { return (d.r) * 2; })
+  .attr("height", function(d) { return (d.r) * 2; })
+  .attr("width", function(d) { return (d.r) * 2; })
 	.attr("clip-path", "url(#cut-off-bottom)")
 
 addPlayIcon(nodes)
@@ -238,11 +237,11 @@ function addPlayIcon(ggg) {
 		.attr("cy", function(d) { return d.r; })
 		.attr("r", function(d) { return d.r; })
 		.attr("fill", BACKGROUND_COLOR)
-   		.attr("fill-opacity","0.4")
+   	.attr("fill-opacity","0.4")
 
 	var path = ggg.append("path")
 		.attr("d", lineFunction(triangle))
-   		.attr("fill-opacity","0.0")
+   	.attr("fill-opacity","0.0")
 		.attr("fill", TRIANGLE_COLOR)
 }
 
@@ -397,17 +396,17 @@ function generateAudioElements() {
 
 		track.addEventListener('ended', function(e) {
 			if (DEBUG) console.log("ENDED event "+this.id)
-			removePlayIcon(this.id)
+			hidePlayIcon(this.id.slice(5))
 		}, false);
 
 		track.addEventListener('play', function(e) {
 			if (DEBUG) console.log("PLAY event "+this.id)
-			addPlayIcon(this.id)
+			showPlayIcon(this.id.slice(5))
 		}, false);
 
 		track.addEventListener('pause', function(e) {
 			if (DEBUG) console.log("PAUSE event "+this.id)
-			removePlayIcon(this.id)
+			hidePlayIcon(this.id.slice(5))
 		}, false);
 
 		track.appendChild(audioElement)
@@ -417,26 +416,17 @@ function generateAudioElements() {
 
 var OPACITY_FADE_TIME = 200
 
-function addPlayIcon(id) {
-	setPlayIconOpacity(id, 0.0)
-}
-
-function removePlayIcon(id) {
+function showPlayIcon(id) {
 	setPlayIconOpacity(id, 1.0)
 }
 
-function setPlayIconOpacity(id, opacity) {
-	var node = d3.select('#name' + id.slice(5))
-		console.log("###### id "+ id.slice(5))
-		//node.select("path") 
-	  //	.attr("fill-opacity", function(d) { return ((d.r/RADIUS)-1) * TRIANGLE_FILL_OPACITY })
-	
-		if (node != "")
-		console.log("###### path "+ node.select("path").attr("fill-opacity"))
-	//		node.attr("path").transition().attr("fill-opacity", 0.5);
+function hidePlayIcon(id) {
+	setPlayIconOpacity(id, 0.0)
+}
 
-	//$(node).children("path").stop(true, false)
-	//$(node).children("path").animate({"fill-opacity": 0.5}, OPACITY_FADE_TIME);
+function setPlayIconOpacity(id, opacity) {
+	var g = d3.select('#name' + id)
+  g.select("path").transition().attr("fill-opacity", opacity)
 }
 
 function play(nodesData){
