@@ -172,16 +172,16 @@ function getDistanceA(x1, y1, x2, y2) {
 //###############
 
 var svg = d3.select("#body").append("svg:svg")
-    .attr("width", width)
-    .attr("height", height)
+	.attr("width", width)
+	.attr("height", height)
   .append("g")
-    .call(d3.behavior.zoom().scaleExtent([1, 8]).on("zoom", zoomHandler))
+  .call(d3.behavior.zoom().scaleExtent([1, 8]).on("zoom", zoomHandler))
   .append("g");
 
 svg.append("rect")
-    .attr("class", "overlay")
-    .attr("width", width*NUMBER_OF_SECTORS)
-    .attr("height", height*NUMBER_OF_SECTORS);
+	.attr("class", "overlay")
+	.attr("width", width*NUMBER_OF_SECTORS)
+	.attr("height", height*NUMBER_OF_SECTORS);
 
 //#################
 //##### NODES #####
@@ -197,16 +197,16 @@ var clipPath = nodes.append("clipPath")
 	.attr("id", "cut-off-bottom")
 
 clipPath.append("circle")
-    .attr("cx", function(d) { return d.r; })
-    .attr("cy", function(d) { return d.r; })
-    .attr("r", function(d) { return d.r; })
+	.attr("cx", function(d) { return d.r; })
+	.attr("cy", function(d) { return d.r; })
+	.attr("r", function(d) { return d.r; })
 
 nodes.append("image")
 	.attr("x", "0")
 	.attr("y", "0")
 	.attr("xlink:href", function(d) { return "../JamendoDataset/"+ d.id + ".jpg" })
-  .attr("height", function(d) { return (d.r) * 2; })
-  .attr("width", function(d) { return (d.r) * 2; })
+	.attr("height", function(d) { return (d.r) * 2; })
+	.attr("width", function(d) { return (d.r) * 2; })
 	.attr("clip-path", "url(#cut-off-bottom)")
 
 addPlayIcon(nodes)
@@ -229,9 +229,9 @@ function addPlayIcon(ggg) {
 		];
 
 	var lineFunction = d3.svg.line()
-			.x(function(d) { return d.x; })
-			.y(function(d) { return d.y; })
-			.interpolate("linear");
+		.x(function(d) { return d.x; })
+		.y(function(d) { return d.y; })
+		.interpolate("linear");
 
 	var shade = ggg.append("circle")
 		.attr("cx", function(d) { return d.r; })
@@ -245,6 +245,8 @@ function addPlayIcon(ggg) {
    	.attr("fill-opacity","0.0")
 		.attr("fill", TRIANGLE_COLOR)
 }
+
+// #### RADIUS ####
 
 function shrinkNode(audioEl, duration) {
 	changeNodesRadius(audioEl, RADIUS, duration)
@@ -276,35 +278,22 @@ function changeNodesRadius(audioEl, radius, duration) {
 	force.start();
 }
 
-function findClosestNode(nodeIn) {
-	var closestNode = null
-	var smallestDistance = 99999
+// #### PLAY ICON ####
 
-	data.forEach(function(d) {
-		var nodeInId = nodeIn.attr("id").slice(4)
-		var distance = d.distances[nodeInId]
-		var nodeIsNotTheSameOne = nodeInId != d.id
-		var nodeIsClosestOneYet = distance < smallestDistance
-		var songHasntBeenPlayedYet = !contains(played, d.id)
-		if (nodeIsNotTheSameOne && nodeIsClosestOneYet && songHasntBeenPlayedYet) {
-			closestNode = d
-			smallestDistance = distance
-		}
-	})
-	return closestNode
+function showPlayIcon(id) {
+	setPlayIconOpacity(id, TRIANGLE_FILL_OPACITY)
 }
 
-function getRandomNode() {
-	var allSongsAlreadyPlayed = data.length == played.length
-	if (allSongsAlreadyPlayed) {
-		return null
-	}
-	do {
-		var node = data[Math.floor(Math.random()*data.length)];
-		var songWasAlreadyPlayed = contains(played, node.id)
-	}
-	while (songWasAlreadyPlayed);
-	return node
+function hidePlayIcon(id) {
+	setPlayIconOpacity(id, 0.0)
+}
+
+function setPlayIconOpacity(id, opacity) {
+	var ggg = d3.selectAll('#name' + id)
+  ggg.select("path")
+		.transition()
+		.duration(OPACITY_FADE_TIME)
+		.attr("fill-opacity", opacity)
 }
 
 //###################
@@ -312,9 +301,9 @@ function getRandomNode() {
 //###################
 
 var force = d3.layout.force()
-    .gravity(0)
-    .nodes(data)
-    .size([width, height])
+	.gravity(0)
+	.nodes(data)
+	.size([width, height])
 	.links([])
 
 force.start();
@@ -330,7 +319,7 @@ force.on("tick", function(e) {
 	data.forEach(function(o) { q.visit(collide(o)) })
 
 	var ggg = svg.selectAll("g")
-  		.attr("transform", function(d) { 
+  	.attr("transform", function(d) { 
 			var relativeSize = d.r/RADIUS
 			var x = d.x - d.r
 			var y = d.y - d.r
@@ -338,7 +327,7 @@ force.on("tick", function(e) {
 		})
    
   ggg.selectAll("circle")
-			.attr("fill-opacity", function(d) { return ((d.r/RADIUS)-1) * BACKGROUND_OPACITY })
+		.attr("fill-opacity", function(d) { return ((d.r/RADIUS)-1) * BACKGROUND_OPACITY })
 
 	//ggg.select("path") // transparency of play icon depends on the radius
 	//		.attr("fill-opacity", function(d) { return ((d.r/RADIUS)-1) * TRIANGLE_FILL_OPACITY })
@@ -346,16 +335,17 @@ force.on("tick", function(e) {
 
 function collide(node) {
   var r = node.r + 16,
-      nx1 = node.x - r,
-      nx2 = node.x + r,
-      ny1 = node.y - r,
-      ny2 = node.y + r;
+			nx1 = node.x - r,
+			nx2 = node.x + r,
+			ny1 = node.y - r,
+			ny2 = node.y + r;
+
   return function(quad, x1, y1, x2, y2) {
     if (quad.point && (quad.point !== node)) {
       var x = node.x - quad.point.x,
-          y = node.y - quad.point.y,
-          l = Math.sqrt(x * x + y * y),
-          r = node.r + quad.point.r;
+					y = node.y - quad.point.y,
+					l = Math.sqrt(x * x + y * y),
+					r = node.r + quad.point.r;
       if (l < r) {
         l = (l - r) / l * .5;
         node.x -= x *= l;
@@ -389,9 +379,9 @@ var timeout = ""
 
 function generateAudioElements() {
 	for (var id in songs.songs) {
-		var id = id.slice(1)
-	  var track = new Audio()
-		var audioElement = document.createElement("source")
+		var id = id.slice(1),
+	  		track = new Audio(),
+				audioElement = document.createElement("source");
 		track.setAttribute("id", "audio"+id);
 		audioElement.setAttribute("src", "../JamendoDataset/"+id+".mp3");
 
@@ -413,22 +403,6 @@ function generateAudioElements() {
 		track.appendChild(audioElement)
 		document.body.appendChild(track)
 	}
-}
-
-function showPlayIcon(id) {
-	setPlayIconOpacity(id, TRIANGLE_FILL_OPACITY)
-}
-
-function hidePlayIcon(id) {
-	setPlayIconOpacity(id, 0.0)
-}
-
-function setPlayIconOpacity(id, opacity) {
-	var g = d3.select('#name' + id)
-  g.select("path")
-		.transition()
-		.duration(OPACITY_FADE_TIME)
-		.attr("fill-opacity", opacity)
 }
 
 function play(nodesData){
@@ -590,13 +564,13 @@ function changeButtonText(button) {
 //################
 
 function contains(a, obj) {
-    var i = a.length;
-    while (i--) {
-       if (a[i] === obj) {
-           return true;
-       }
-    }
-    return false;
+	var i = a.length;
+	while (i--) {
+		if (a[i] === obj) {
+			return true;
+		}
+	}
+	return false;
 }
 
 function getNode(audioEl) {
@@ -622,6 +596,37 @@ function getHeight() {
     	e = document.documentElement,
     	g = document.getElementsByTagName('body')[0]
 	return w.innerHeight|| e.clientHeight|| g.clientHeight;
+}
+
+function findClosestNode(nodeIn) {
+	var closestNode = null
+	var smallestDistance = 99999
+
+	data.forEach(function(d) {
+		var nodeInId = nodeIn.attr("id").slice(4)
+		var distance = d.distances[nodeInId]
+		var nodeIsNotTheSameOne = nodeInId != d.id
+		var nodeIsClosestOneYet = distance < smallestDistance
+		var songHasntBeenPlayedYet = !contains(played, d.id)
+		if (nodeIsNotTheSameOne && nodeIsClosestOneYet && songHasntBeenPlayedYet) {
+			closestNode = d
+			smallestDistance = distance
+		}
+	})
+	return closestNode
+}
+
+function getRandomNode() {
+	var allSongsAlreadyPlayed = data.length == played.length
+	if (allSongsAlreadyPlayed) {
+		return null
+	}
+	do {
+		var node = data[Math.floor(Math.random()*data.length)];
+		var songWasAlreadyPlayed = contains(played, node.id)
+	}
+	while (songWasAlreadyPlayed);
+	return node
 }
 
 </script>
