@@ -464,6 +464,8 @@ function stopPlayback(audioEl) {
 	}
 }
 
+// TODO deny three simultaneous tracks at once >>>
+
 function cueNextSong(audioEl) {
 	var timeBeforeFadeout = Math.round( audioEl.duration * 1000 - crossfadeDuration)
 	timeout = setTimeout(function(){
@@ -494,15 +496,7 @@ function playNextSong(id) {
 	cueNextSong(audioEl)
 }
 
-function getNextSong(id) {
-	var g = d3.select('#name' + id)
-	if (shuffle) {
-		var nextSong = getRandomNode()
-	} else {
-		var nextSong = findClosestNode(g)
-	}
-	return getAudioEl(nextSong)
-}
+// <<< TODO deny three simultaneous tracks at once
 
 function fadeIn(audioEl, duration) {
 	if (CROSSFADE_VOLUME) {
@@ -525,6 +519,49 @@ function fadeOut(audioEl, duration) {
 		audioEl.currentTime = 0
 	}, duration);
 	shrinkNode(audioEl, duration)
+}
+
+// #### SONG SELECTION ####
+
+function getNextSong(id) {
+	var g = d3.select('#name' + id)
+	if (shuffle) {
+		var nextSong = getRandomNode()
+	} else {
+		var nextSong = findClosestNode(g)
+	}
+	return getAudioEl(nextSong)
+}
+
+function findClosestNode(nodeIn) {
+	var closestNode = null
+	var smallestDistance = 99999
+
+	data.forEach(function(d) {
+		var nodeInId = nodeIn.attr("id").slice(4)
+		var distance = d.distances[nodeInId]
+		var nodeIsNotTheSameOne = nodeInId != d.id
+		var nodeIsClosestOneYet = distance < smallestDistance
+		var songHasntBeenPlayedYet = !contains(played, d.id)
+		if (nodeIsNotTheSameOne && nodeIsClosestOneYet && songHasntBeenPlayedYet) {
+			closestNode = d
+			smallestDistance = distance
+		}
+	})
+	return closestNode
+}
+
+function getRandomNode() {
+	var allSongsAlreadyPlayed = data.length == played.length
+	if (allSongsAlreadyPlayed) {
+		return null
+	}
+	do {
+		var node = data[Math.floor(Math.random()*data.length)];
+		var songWasAlreadyPlayed = contains(played, node.id)
+	}
+	while (songWasAlreadyPlayed);
+	return node
 }
 
 //##########################
@@ -596,37 +633,6 @@ function getHeight() {
     	e = document.documentElement,
     	g = document.getElementsByTagName('body')[0]
 	return w.innerHeight|| e.clientHeight|| g.clientHeight;
-}
-
-function findClosestNode(nodeIn) {
-	var closestNode = null
-	var smallestDistance = 99999
-
-	data.forEach(function(d) {
-		var nodeInId = nodeIn.attr("id").slice(4)
-		var distance = d.distances[nodeInId]
-		var nodeIsNotTheSameOne = nodeInId != d.id
-		var nodeIsClosestOneYet = distance < smallestDistance
-		var songHasntBeenPlayedYet = !contains(played, d.id)
-		if (nodeIsNotTheSameOne && nodeIsClosestOneYet && songHasntBeenPlayedYet) {
-			closestNode = d
-			smallestDistance = distance
-		}
-	})
-	return closestNode
-}
-
-function getRandomNode() {
-	var allSongsAlreadyPlayed = data.length == played.length
-	if (allSongsAlreadyPlayed) {
-		return null
-	}
-	do {
-		var node = data[Math.floor(Math.random()*data.length)];
-		var songWasAlreadyPlayed = contains(played, node.id)
-	}
-	while (songWasAlreadyPlayed);
-	return node
 }
 
 </script>
