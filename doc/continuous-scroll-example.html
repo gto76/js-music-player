@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Zoom + Pan with Limiting</title>
+<style>
+
+svg {
+  font: 10px sans-serif;
+  shape-rendering: crispEdges;
+}
+
+rect {
+  fill: #ddd;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #fff;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var margin = {top: 20, right: 20, bottom: 30, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+	
+/*
+	insertion: add object variable for panExtent
+	
+	## range of panExtent = {x: [-Infinity,Infinity], y: [-Infinity,Infinity] };
+*/
+var panExtent = {x: [0,width], y: [-100,400] };
+				
+/*
+	change bounds
+	
+	## test the extent and choose appropriate scales
+*/
+var x = d3.scale.linear()
+    .domain([0, 100])
+    //.domain([panExtent.x[0]>(-width / 2)?panExtent.x[0]:(-width / 2),
+//			panExtent.x[1]<(width / 2)?panExtent.x[1]:(width / 2)])
+    .range([0, width]);
+	
+var y = d3.scale.linear()
+    //.domain([panExtent.y[0], panExtent.y[1]])
+    .domain([0, 100])
+    //.domain([panExtent.y[0]>(-height / 2)?panExtent.y[0]:(-height / 2),panExtent.y[1]<(height / 2)?panExtent.y[1]:(height / 2)])
+    .range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+
+var zoom = d3.behavior.zoom()
+    .x(x)
+    .y(y)
+    .scaleExtent([1, 10])
+    .on("zoom", zoomed);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+    .call(zoom);
+
+svg.append("rect")
+    .attr("width", width)
+    .attr("height", height);
+
+svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis);
+
+svg.append("g")
+    .attr("class", "y axis")
+    .call(yAxis);
+
+function zoomed() {
+
+  /* call the zoom.translate vector with the array returned from panLimit() */
+  zoom.translate(panLimit());
+					
+  svg.select(".x.axis").call(xAxis);
+  svg.select(".y.axis").call(yAxis);
+
+  console.log("zoomed finished")
+}
+
+function panLimit() {
+	/*
+	
+	include boolean to work out the panExtent and return to zoom.translate()
+	
+	*/
+
+	var divisor = {h: height / ((y.domain()[1]-y.domain()[0])*zoom.scale()), w: width / ((x.domain()[1]-x.domain()[0])*zoom.scale())},
+		minX = -(((x.domain()[0]-x.domain()[1])*zoom.scale())+(panExtent.x[1]-(panExtent.x[1]-(width/divisor.w)))),
+		minY = -(((y.domain()[0]-y.domain()[1])*zoom.scale())+(panExtent.y[1]-(panExtent.y[1]-(height*(zoom.scale())/divisor.h))))*divisor.h,
+		maxX = -(((x.domain()[0]-x.domain()[1]))+(panExtent.x[1]-panExtent.x[0]))*divisor.w*zoom.scale(),
+		maxY = (((y.domain()[0]-y.domain()[1])*zoom.scale())+(panExtent.y[1]-panExtent.y[0]))*divisor.h*zoom.scale(), 
+
+		tx = x.domain()[0] < panExtent.x[0] ? 
+				minX : 
+				x.domain()[1] > panExtent.x[1] ? 
+					maxX : 
+					zoom.translate()[0],
+		ty = y.domain()[0]  < panExtent.y[0]? 
+				maxY : 
+				y.domain()[1] > panExtent.y[1] ? 
+					minY : 
+					zoom.translate()[1];
+
+
+    console.log("panExtent.y[0] "+panExtent.y[0])
+    console.log("y.domain()[0] "+y.domain()[0])
+    console.log("y.domain()[1] "+y.domain()[1])
+    console.log("panExtent.y[1] "+panExtent.y[1])
+    console.log("minY "+minY)
+    console.log("maxY "+maxY)
+    console.log("height "+height)
+	console.log("==============")
+
+	
+	return [tx,ty];
+
+}
+
+</script>
