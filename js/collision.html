@@ -31,7 +31,7 @@
 	$("#ex6").slider() 
 	$(".slider").attr('style', 'position: absolute; left: 230px; top: 30px');
 	$("#ex6").on("slide", function(slideEvt) {
-		crossfadeDuration = slideEvt.value * 1000
+		setCrossfadeDuration(slideEvt.value * 1000) 
 	});
 </script>
 
@@ -464,9 +464,52 @@ function stopPlayback(audioEl) {
 	}
 }
 
+// NEW >>>
+// NEW >>>
+// NEW >>>
+
+function setCrossfadeDuration(duration)
+	crossfadeDuration = duration
+	if (crossfadeDoesentFit(duration)) {
+		return
+	}
+	cueNextSong(getNextSong(playing))
+}	
+
+
+function crossfadeDoesentFit(duration) {
+	var nextSong = getNextSong(playing.id)
+	if (nextSong.duration / 2 < duration) {
+		return true
+	}
+	if (playing.remaining < duration) {
+		return true
+	}
+	return false
+}
+
+function maxCrossfadeDuration() {
+	var currentSongRemaining = playing.remaining
+	var currentSongLongestFade = playing.duration / 2
+	var nextSongLongestFade = nextSong.duration / 2
+	return Math.min(currentSongRemaining, currentSongLongestFade, nextSongLongestFade)
+}
+
+// <<< NEW
+// <<< NEW
+// <<< NEW
+
+// TODO deny three simultaneous tracks at once >>>
+// TODO deny three simultaneous tracks at once >>>
 // TODO deny three simultaneous tracks at once >>>
 
 function cueNextSong(audioEl) {
+
+	var actualCrossfadeDuration = Math.min(crossfadeDuration, maxCrossfadeDuration())
+	var timeBeforeFadeout = Math.round(audioEl.duration * 1000 - actualCrossfadeDuration)
+
+
+	// TODO add current playing time to the eqation
 	var timeBeforeFadeout = Math.round( audioEl.duration * 1000 - crossfadeDuration)
 	timeout = setTimeout(function(){
 		var id = $(audioEl).attr('id').slice(5)
@@ -496,6 +539,8 @@ function playNextSong(id) {
 	cueNextSong(audioEl)
 }
 
+// <<< TODO deny three simultaneous tracks at once
+// <<< TODO deny three simultaneous tracks at once
 // <<< TODO deny three simultaneous tracks at once
 
 function fadeIn(audioEl, duration) {
