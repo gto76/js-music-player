@@ -17,14 +17,13 @@ import java.io.IOException;
  *
  * @author plamere
  */
-public class TrackAnalysisExample {
+public class AnalyseTrack {
 
     public static void main(String[] args) throws EchoNestException {
         EchoNestAPI en = new EchoNestAPI("K8TNHHSAMCORDFDPX");
 
-        //String path = "../JamendoDataset/"+args[0]+".mp3";
         String path = args[0];
-		System.out.println("path = "+path);
+		//System.out.println("path = "+path);
 
         if (args.length > 2) {
             path = args[1];
@@ -48,15 +47,15 @@ public class TrackAnalysisExample {
 			Track track = en.uploadTrack(file);
 			track.waitForAnalysis(30000);
 			if (track.getStatus() == Track.AnalysisStatus.COMPLETE) {
-				track.showAll();
-				System.out.println("Analysis: " + track.getAnalysis());
-				System.out.println("Tempo: " + track.getTempo());
-				System.out.println("Danceability: " + track.getDanceability());
-				System.out.println("Speechiness: " + track.getSpeechiness());
-				System.out.println("Liveness: " + track.getLiveness());
-				System.out.println("Energy: " + track.getEnergy());
-				System.out.println("Loudness: " + track.getLoudness());
-				System.out.println("=====");
+				//track.showAll();
+				System.out.println(track.getAnalysis());
+				//System.out.println("Tempo: " + track.getTempo());
+				//System.out.println("Danceability: " + track.getDanceability());
+				//System.out.println("Speechiness: " + track.getSpeechiness());
+				//System.out.println("Liveness: " + track.getLiveness());
+				//System.out.println("Energy: " + track.getEnergy());
+				//System.out.println("Loudness: " + track.getLoudness());
+				//System.out.println("=====");
 			} else {
 				System.err.println("Trouble analysing track " + track.getStatus());
 			}
