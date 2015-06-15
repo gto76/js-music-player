@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# Usage: renameFiles DIR
+# Renames all the files in directory, by substituting whitespaces with underscores
+
+for file in "$1"*; do
+	newName=$(echo "$file" | sed 's/ /_/g')
+	mv "$file" "$newName"
+done
+

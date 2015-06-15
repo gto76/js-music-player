@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# Usage: mergeJsonFiles DIR 
+# Merges all json files inside directory into one variable, with filenames becoming the keys and the file contents becoming the values
+
+echo "var songs = '{\"songs\": {\\"
+firstLine="true"
+for file in "$1"/*.json; do
+	if [[ "$firstLine" == "false" ]]; then
+		echo ",\\"
+	else
+		firstLine="false"
+	fi
+	fileName=$(basename -s .json "$file")
+	content=$(cat "$file")
+	echo -n "\"$fileName\": $content"
+done
+
+echo "\\"
+echo "}}';"
+
+
+
+

@@ -10,7 +10,7 @@
 	<script src="lib/bootstrap-slider.js"></script>
 	<link rel="stylesheet" href="lib/bootstrap-slider.css">
 
-	<script src="data/jamendo-data.js"></script>
+	<script src="data/alternative-data.js"></script>
 
 	<style>
 		.overlay {
@@ -96,18 +96,18 @@ data.forEach(function(d, i) {
 	// SET id
 	var keys = Object.keys(songs.songs)
 	var songIndex = keys[i%numOfSongs]
-	d.id = songIndex.slice(1)
+	d.id = songIndex
 
 	var sectorIndex = Math.floor(i/numOfSongs)
 
 	// SET X
-	var tempo = songs.songs[songIndex].tempo
+	var tempo = songs.songs[songIndex].track.tempo
 	var sectorX = sectorIndex % NUMBER_OF_SECTORS
 	d.fociX = getFociX(tempo) + sectorX * width
 	d.x = d.fociX
 
 	// SET Y
-	var key = songs.songs[songIndex].key
+	var key = songs.songs[songIndex].track.key
 	var sectorY = Math.floor(sectorIndex/NUMBER_OF_SECTORS)
 	d.fociY = getFociY(key) + sectorY * height
 	d.y = d.fociY
@@ -204,7 +204,7 @@ clipPath.append("circle")
 nodes.append("image")
 	.attr("x", "0")
 	.attr("y", "0")
-	.attr("xlink:href", function(d) { return "../JamendoDataset/"+ d.id + ".jpg" })
+	.attr("xlink:href", function(d) { return "../alternative/"+ d.id + ".jpg" })
 	.attr("height", function(d) { return (d.r) * 2; })
 	.attr("width", function(d) { return (d.r) * 2; })
 	.attr("clip-path", "url(#cut-off-bottom)")
@@ -266,7 +266,7 @@ function changeNodesRadius(audioEl, radius, duration) {
 		duration = RADIUS_TRANSITION_MIN
 	}
 	var g = getNode(audioEl)
-	var gId = g.attr("id").slice(4)
+	var gId = g.attr("id")
 
 	data.forEach(function(d) {
 		if (d.id == gId) {
@@ -379,25 +379,24 @@ var timeout = ""
 
 function generateAudioElements() {
 	for (var id in songs.songs) {
-		var id = id.slice(1),
-	  		track = new Audio(),
-				audioElement = document.createElement("source");
+	  var	track = new Audio()
+		var	audioElement = document.createElement("source")
 		track.setAttribute("id", "audio"+id);
-		audioElement.setAttribute("src", "../JamendoDataset/"+id+".mp3");
+		audioElement.setAttribute("src", "../alternative/"+id+".mp3");
 
 		track.addEventListener('ended', function(e) {
 			if (DEBUG) console.log("ENDED event "+this.id)
-			hidePlayIcon(this.id.slice(5))
+			hidePlayIcon(this.id)
 		}, false);
 
 		track.addEventListener('play', function(e) {
 			if (DEBUG) console.log("PLAY event "+this.id)
-			showPlayIcon(this.id.slice(5))
+			showPlayIcon(this.id)
 		}, false);
 
 		track.addEventListener('pause', function(e) {
 			if (DEBUG) console.log("PAUSE event "+this.id)
-			hidePlayIcon(this.id.slice(5))
+			hidePlayIcon(this.id)
 		}, false);
 
 		track.appendChild(audioElement)
@@ -424,7 +423,7 @@ function play(nodesData){
 
 function startPlayback(audioEl) {
 	// update state
-	var id = audioEl.id.slice(5)
+	var id = audioEl.id
 	played.push(id)
 	playing = audioEl
 	
@@ -469,7 +468,7 @@ function stopPlayback(audioEl) {
 function cueNextSong(audioEl) {
 	var timeBeforeFadeout = Math.round( audioEl.duration * 1000 - crossfadeDuration)
 	timeout = setTimeout(function(){
-		var id = $(audioEl).attr('id').slice(5)
+		var id = $(audioEl).attr('id')
 		if (DEBUG) console.log("audioEl.id "+audioEl.id)
 		if (AUTOPLAY) {
 			fadeOut(audioEl, crossfadeDuration)
@@ -486,7 +485,7 @@ function playNextSong(id) {
 
 	// update state
 	playing = audioEl
-	var id = audioEl.id.slice(5)
+	var id = audioEl.id
 	played.push(id)
 
 	// fade in
@@ -538,7 +537,7 @@ function findClosestNode(nodeIn) {
 	var smallestDistance = 99999
 
 	data.forEach(function(d) {
-		var nodeInId = nodeIn.attr("id").slice(4)
+		var nodeInId = nodeIn.attr("id")
 		var distance = d.distances[nodeInId]
 		var nodeIsNotTheSameOne = nodeInId != d.id
 		var nodeIsClosestOneYet = distance < smallestDistance
@@ -611,7 +610,7 @@ function contains(a, obj) {
 }
 
 function getNode(audioEl) {
-	var id = audioEl.id.slice(5)
+	var id = audioEl.id
 	return d3.select('#name' + id)
 }
 
