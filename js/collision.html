@@ -63,12 +63,15 @@ var OPACITY_FADE_TIME = 300
 
 var AUTOPLAY = true
 var CROSSFADE_DURATION = 3000
-var CROSSFADE_VOLUME = true
+
 var FADEOUT_DURATION = 1000
 var FADEIN_DURATION = 0
 var RADIUS_TRANSITION_MIN = 1000
 
 var SHUFFLE = false
+
+// All songs with loudnes under this treshold wont be totaly maximized
+var TRESHOLD_DB = -15
 //////////////////////////////////////
 
 var shuffle = SHUFFLE
@@ -97,6 +100,9 @@ data.forEach(function(d, i) {
 	var keys = Object.keys(songs.songs)
 	var songIndex = keys[i%numOfSongs]
 	d.id = songIndex
+
+	// SET loudness
+	d.loudness = songs.songs[songIndex].track.loudness
 
 	var sectorIndex = Math.floor(i/numOfSongs)
 
@@ -192,6 +198,7 @@ var nodes = svg.selectAll("g")
   	.enter().append("g")
 	.on("click", function(d) { play(d) })
 	.attr('id', function(d) { return 'name' + d.id })
+	.attr('loudness', function(d) { return d.loudness }) // this is only used in play function when setting volume, maybe is redundant if we can acces data directly
 
 var clipPath = nodes.append("clipPath")
 	.attr("id", "cut-off-bottom")
@@ -266,7 +273,7 @@ function changeNodesRadius(audioEl, radius, duration) {
 		duration = RADIUS_TRANSITION_MIN
 	}
 	var g = getNode(audioEl)
-	var gId = g.attr("id")
+	var gId = g.attr("id").slice(4)
 
 	data.forEach(function(d) {
 		if (d.id == gId) {
@@ -386,17 +393,17 @@ function generateAudioElements() {
 
 		track.addEventListener('ended', function(e) {
 			if (DEBUG) console.log("ENDED event "+this.id)
-			hidePlayIcon(this.id)
+			hidePlayIcon(this.id.slice(5))
 		}, false);
 
 		track.addEventListener('play', function(e) {
 			if (DEBUG) console.log("PLAY event "+this.id)
-			showPlayIcon(this.id)
+			showPlayIcon(this.id.slice(5))
 		}, false);
 
 		track.addEventListener('pause', function(e) {
 			if (DEBUG) console.log("PAUSE event "+this.id)
-			hidePlayIcon(this.id)
+			hidePlayIcon(this.id.slice(5))
 		}, false);
 
 		track.appendChild(audioElement)
@@ -423,7 +430,7 @@ function play(nodesData){
 
 function startPlayback(audioEl) {
 	// update state
-	var id = audioEl.id
+	var id = audioEl.id.slice(5)
 	played.push(id)
 	playing = audioEl
 	
@@ -468,7 +475,7 @@ function stopPlayback(audioEl) {
 function cueNextSong(audioEl) {
 	var timeBeforeFadeout = Math.round( audioEl.duration * 1000 - crossfadeDuration)
 	timeout = setTimeout(function(){
-		var id = $(audioEl).attr('id')
+		var id = $(audioEl).attr('id').slice(5)
 		if (DEBUG) console.log("audioEl.id "+audioEl.id)
 		if (AUTOPLAY) {
 			fadeOut(audioEl, crossfadeDuration)
@@ -485,7 +492,7 @@ function playNextSong(id) {
 
 	// update state
 	playing = audioEl
-	var id = audioEl.id
+	var id = audioEl.id.slice(5)
 	played.push(id)
 
 	// fade in
@@ -497,11 +504,24 @@ function playNextSong(id) {
 
 // <<< TODO deny three simultaneous tracks at once
 
+
+function getNormalizedVolume(audioEl) {
+	var node = getNode(audioEl)
+	var loudness = node.attr("loudness")
+	if (DEBUG) { console.log("loudness = "+loudness) }
+	var adjustedLoudness = TRESHOLD_DB - loudness
+	if (DEBUG) { console.log("adjustedLoudness = "+adjustedLoudness) }
+	var normalizedVolume = Math.pow(2.0, (adjustedLoudness/10.0))
+	return Math.min(1.0, normalizedVolume)
+}
+
 function fadeIn(audioEl, duration) {
+	var normalizedVolume = getNormalizedVolume(audioEl)
+	if (DEBUG) { console.log("normalizedVolume = "+normalizedVolume) }
 	if (CROSSFADE_VOLUME) {
 		$(audioEl).stop(true, false)
 		$(audioEl).prop('volume', 0.0)
-		$(audioEl).animate({volume: 1.0}, duration);
+		$(audioEl).animate({volume: normalizedVolume}, duration);
 	}
 	audioEl.play()
 	enlargeNode(audioEl, duration)
@@ -537,7 +557,7 @@ function findClosestNode(nodeIn) {
 	var smallestDistance = 99999
 
 	data.forEach(function(d) {
-		var nodeInId = nodeIn.attr("id")
+		var nodeInId = nodeIn.attr("id").slice(4)
 		var distance = d.distances[nodeInId]
 		var nodeIsNotTheSameOne = nodeInId != d.id
 		var nodeIsClosestOneYet = distance < smallestDistance
@@ -610,7 +630,7 @@ function contains(a, obj) {
 }
 
 function getNode(audioEl) {
-	var id = audioEl.id
+	var id = audioEl.id.slice(5)
 	return d3.select('#name' + id)
 }
 
