@@ -63,7 +63,7 @@ var OPACITY_FADE_TIME = 300
 
 var AUTOPLAY = true
 var CROSSFADE_DURATION = 3000
-
+var CROSSFADE_VOLUME = true
 var FADEOUT_DURATION = 1000
 var FADEIN_DURATION = 0
 var RADIUS_TRANSITION_MIN = 1000
@@ -511,7 +511,7 @@ function getNormalizedVolume(audioEl) {
 	if (DEBUG) { console.log("loudness = "+loudness) }
 	var adjustedLoudness = TRESHOLD_DB - loudness
 	if (DEBUG) { console.log("adjustedLoudness = "+adjustedLoudness) }
-	var normalizedVolume = Math.pow(2.0, (adjustedLoudness/10.0))
+	var normalizedVolume = Math.pow(3.0, (adjustedLoudness/10.0))
 	return Math.min(1.0, normalizedVolume)
 }
 
