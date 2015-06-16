@@ -4,7 +4,10 @@
 # Renames all the files in directory, by substituting whitespaces with underscores
 
 for file in "$1"*; do
-	newName=$(echo "$file" | sed 's/ /_/g')
-	mv "$file" "$newName"
+	base=$(basename "$file" | sed 's/\.[^.]*$//')
+	suffix=$(echo "$file" | grep -o '\.[^.]*$')
+	dir=$(dirname "$file")
+	newBase=$(echo "$base" | tr ' .(),!' '_')
+	echo mv "$file" "$dir/$newBase$suffix"
 done
 
