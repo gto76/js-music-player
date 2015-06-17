@@ -35,6 +35,8 @@
 	});
 </script>
 
+<button id="skipMiddleButton" type="button" class="btn btn-default" style="position: absolute; left: 462px; top: 22px">Skip Middle: Off</button> 
+
 <div id="body">
 
 <script type="text/javascript">
@@ -72,10 +74,15 @@ var SHUFFLE = false
 
 // All songs with loudnes under this treshold wont be totaly maximized
 var TRESHOLD_DB = -15
+
+// Is middle part of the song skipped
+var SKIP_MIDDLE = false
+var MIDDLE_START_TIME = 20
 //////////////////////////////////////
 
 var shuffle = SHUFFLE
 var crossfadeDuration = CROSSFADE_DURATION
+var skipMiddle = SKIP_MIDDLE
 
 var songs = JSON.parse(songs);
 
@@ -410,6 +417,11 @@ function generateAudioElements() {
 	}
 }
 
+//////////////////////////////////////////
+
+/*
+ * Called when a node gets clicked on.
+ */
 function play(nodesData){
 	var audioEl = getAudioEl(nodesData)
 
@@ -427,6 +439,9 @@ function play(nodesData){
 	}
 }
 
+/*
+ * Called when node gets clicked on and no track is playing.
+ */
 function startPlayback(audioEl) {
 	// update state
 	var id = audioEl.id.slice(5)
@@ -440,6 +455,9 @@ function startPlayback(audioEl) {
 	cueNextSong(audioEl)
 }
 
+/*
+ * Called when node gets clicked on and another track is playing.
+ */
 function skipTo(audioEl) {
 	// update state
 	clearTimeout(timeout)
@@ -455,6 +473,9 @@ function skipTo(audioEl) {
 	cueNextSong(audioEl)
 }
 
+/*
+ * Called when node gets clicked on and it's track is playing.
+ */
 function stopPlayback(audioEl) {
 	// update state
 	clearTimeout(timeout)
@@ -469,10 +490,20 @@ function stopPlayback(audioEl) {
 	}
 }
 
+//////////////////////////////////////////
+
 // TODO deny three simultaneous tracks at once >>>
 
+/*
+ * Called when track starts playing.
+ */
+
 function cueNextSong(audioEl) {
-	var timeBeforeFadeout = Math.round( audioEl.duration * 1000 - crossfadeDuration)
+	if (!skipMiddle) {
+		var timeBeforeFadeout = Math.round( audioEl.duration * 1000 - crossfadeDuration)
+	} else {
+		var timeBeforeFadeout = Math.round( 2 * MIDDLE_START_TIME * 1000 - crossfadeDuration)
+	}
 	timeout = setTimeout(function(){
 		var id = $(audioEl).attr('id').slice(5)
 		if (DEBUG) console.log("audioEl.id "+audioEl.id)
@@ -486,6 +517,9 @@ function cueNextSong(audioEl) {
 	}, timeBeforeFadeout);
 }
 
+/*
+ * Called when timeout fires
+ */
 function playNextSong(id) {
 	var audioEl = getNextSong(id)
 
@@ -504,40 +538,7 @@ function playNextSong(id) {
 // <<< TODO deny three simultaneous tracks at once
 
 
-function getNormalizedVolume(audioEl) {
-	var node = getNode(audioEl)
-	var loudness = node.attr("loudness")
-	if (DEBUG) { console.log("loudness = "+loudness) }
-	var adjustedLoudness = TRESHOLD_DB - loudness
-	if (DEBUG) { console.log("adjustedLoudness = "+adjustedLoudness) }
-	var normalizedVolume = Math.pow(3.0, (adjustedLoudness/10.0))
-	return Math.min(1.0, normalizedVolume)
-}
-
-function fadeIn(audioEl, duration) {
-	var normalizedVolume = getNormalizedVolume(audioEl)
-	if (DEBUG) { console.log("normalizedVolume = "+normalizedVolume) }
-	if (CROSSFADE_VOLUME) {
-		$(audioEl).stop(true, false)
-		$(audioEl).prop('volume', 0.0)
-		$(audioEl).animate({volume: normalizedVolume}, duration);
-	}
-	audioEl.play()
-	enlargeNode(audioEl, duration)
-}
-
-function fadeOut(audioEl, duration) {
-	if (DEBUG) console.log("fadeOut, audioEl "+audioEl.id)
-	if (CROSSFADE_VOLUME) {
-		$(audioEl).stop(true, false)
-		$(audioEl).animate({volume: 0.0}, duration);
-	}
-	setTimeout(function() {
-		audioEl.pause()
-		audioEl.currentTime = 0
-	}, duration);
-	shrinkNode(audioEl, duration)
-}
+//////////////////////////////////////////
 
 // #### SONG SELECTION ####
 
@@ -582,19 +583,23 @@ function getRandomNode() {
 	return node
 }
 
-//##########################
-//##### SHUFFLE BUTTON ##### 
-//##########################
+//###################
+//##### BUTTONS ##### 
+//###################
 
 $("#shuffleButton").click(function() {
-	toggleShuffle()
+	shuffle = !shuffle
 	changeButtonColor(this)
-	changeButtonText(this)
+	this.textContent = getButtonText("Shuffle", shuffle);
 });
 
-function toggleShuffle() {
-	shuffle = !shuffle
-}
+$("#skipMiddleButton").click(function() {
+	skipMiddle = !skipMiddle
+	changeButtonColor(this)
+	this.textContent = getButtonText("Skip Middle", skipMiddle);
+});
+
+///////////////
 
 function changeButtonColor(button) {
   if ($(button).hasClass('btn btn-primary')) {
@@ -606,13 +611,18 @@ function changeButtonColor(button) {
 	}
 }
 
-function changeButtonText(button) {
-	if (shuffle) {
-		button.textContent = "Shuffle: On"
+function getButtonText(label, isSet) {
+	return label + ": " + onOff(isSet)
+}
+
+function onOff(isSet) {
+	if (isSet) {
+		return "On"
 	} else {
-		button.textContent = "Shuffle: Off"
+		return "Off"
 	}
 }
+
 
 //################
 //##### UTIL #####
@@ -651,6 +661,57 @@ function getHeight() {
     	e = document.documentElement,
     	g = document.getElementsByTagName('body')[0]
 	return w.innerHeight|| e.clientHeight|| g.clientHeight;
+}
+
+function getNormalizedVolume(audioEl) {
+	var node = getNode(audioEl)
+	var loudness = node.attr("loudness")
+	if (DEBUG) { console.log("loudness = "+loudness) }
+	var adjustedLoudness = TRESHOLD_DB - loudness
+	if (DEBUG) { console.log("adjustedLoudness = "+adjustedLoudness) }
+	var normalizedVolume = Math.pow(3.0, (adjustedLoudness/10.0))
+	return Math.min(1.0, normalizedVolume)
+}
+
+function fadeIn(audioEl, duration) {
+	var normalizedVolume = getNormalizedVolume(audioEl)
+	if (DEBUG) { console.log("normalizedVolume = "+normalizedVolume) }
+	if (CROSSFADE_VOLUME) {
+		$(audioEl).stop(true, false)
+		$(audioEl).prop('volume', 0.0)
+		$(audioEl).animate({volume: normalizedVolume}, duration);
+	}
+	audioEl.play()
+	enlargeNode(audioEl, duration)
+	if (skipMiddle) {
+		skipMiddleTimeout(audioEl)
+	}
+}
+
+function skipMiddleTimeout(audioEl) {
+	audioEl.timeout = setTimeout(function(){
+		audioEl.currentTime = getMiddleEndTime(audioEl)
+	}, MIDDLE_START_TIME * 1000);
+}
+
+function getMiddleEndTime(audioEl) {
+	return audioEl.duration - MIDDLE_START_TIME 
+}
+
+function fadeOut(audioEl, duration) {
+	if (DEBUG) console.log("fadeOut, audioEl "+audioEl.id)
+	if (skipMiddle) {
+		clearTimeout(audioEl.timeout)
+	}
+	if (CROSSFADE_VOLUME) {
+		$(audioEl).stop(true, false)
+		$(audioEl).animate({volume: 0.0}, duration);
+	}
+	setTimeout(function() {
+		audioEl.pause()
+		audioEl.currentTime = 0
+	}, duration);
+	shrinkNode(audioEl, duration)
 }
 
 </script>
