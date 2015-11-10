@@ -17,8 +17,8 @@ Features
  
 How to run locally
 -----------------
-```bash
-git clone https://github.com/gto76/js-music-player
-cd js-music-player/js
-sensible-browser collision.html
+```
+$ git clone https://github.com/gto76/js-music-player
+$ cd js-music-player/js
+$ sensible-browser collision.html
 ```
