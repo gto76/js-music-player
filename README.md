@@ -1,7 +1,7 @@
 Js Music Player
 ===============
 
-Nice audio player that arranges and plays the tracks according to their key and tempo.
+#### Nice audio player that arranges and plays the tracks according to their key and tempo
 
 ![screenshot](doc/screenshot.png)
 
