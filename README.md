@@ -5,7 +5,7 @@ Js Music Player
 
 ![screenshot](doc/screenshot.png)
 
-####[TRY IT ONLINE](http://gto76.github.io/js-music-player/js/collision.html)
+**[TRY IT ONLINE](http://gto76.github.io/js-music-player/js/collision.html)**
 
 Features
 --------
